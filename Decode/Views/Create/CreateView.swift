@@ -21,7 +21,7 @@ struct CreateView: View {
                                     .id(Self.cableID(board))
                             }
                             BoardView(board: board, zoom: zoom)
-                                .id(board.id)
+                                .id(Self.boardID(board))
                         }
 
                         if studio.boards.count == 1 {
@@ -48,7 +48,7 @@ struct CreateView: View {
                             if last.kind == .generation {
                                 proxy.scrollTo(Self.cableID(last), anchor: .top)
                             } else {
-                                proxy.scrollTo(last.id, anchor: .top)
+                                proxy.scrollTo(Self.boardID(last), anchor: .top)
                             }
                         }
                     }
@@ -58,7 +58,7 @@ struct CreateView: View {
                     Task { @MainActor in
                         try? await Task.sleep(for: .seconds(0.8 * SettingsKey.speed.multiplier))
                         withAnimation(.smooth(duration: 1.4)) {
-                            proxy.scrollTo(last.id, anchor: .bottom)
+                            proxy.scrollTo(Self.boardID(last), anchor: .bottom)
                         }
                     }
                 }
@@ -78,9 +78,15 @@ struct CreateView: View {
     }
 }
 
+// Scroll targets need ids distinct from the ForEach row identity (board.id):
+// scrolling to the row id lands on its first child, the cable.
 extension CreateView {
     static func cableID(_ board: Board) -> String {
         "cable-\(board.id.uuidString)"
+    }
+
+    static func boardID(_ board: Board) -> String {
+        "board-\(board.id.uuidString)"
     }
 }
 
