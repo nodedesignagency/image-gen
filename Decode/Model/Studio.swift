@@ -127,6 +127,7 @@ final class Studio {
     let presets = Preset.all
     let feed = FeedItem.all
     private var rotation = 0
+    @ObservationIgnored private var enhanceTask: Task<Void, Never>?
 
     init() {
         history = Self.seedHistory()
@@ -178,6 +179,10 @@ final class Studio {
             showPaywall = true
             return
         }
+        // A still-typing enhance would otherwise keep appending after the field clears.
+        enhanceTask?.cancel()
+        enhanceTask = nil
+        isEnhancing = false
         let typed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         let preset = pick(for: typed)
         let isCustom = !typed.isEmpty && typed != preset.prompt
@@ -260,10 +265,11 @@ final class Studio {
         let suffix = ", " + picks.joined(separator: ", ")
 
         isEnhancing = true
-        Task {
+        enhanceTask = Task {
             for character in suffix {
-                prompt.append(character)
                 try? await Task.sleep(for: .milliseconds(16))
+                if Task.isCancelled { return }
+                prompt.append(character)
             }
             isEnhancing = false
         }

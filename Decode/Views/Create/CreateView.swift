@@ -18,6 +18,7 @@ struct CreateView: View {
                             if index > 0 {
                                 Cable(isLive: board.phase != .done)
                                     .frame(height: 64)
+                                    .id(Self.cableID(board))
                             }
                             BoardView(board: board, zoom: zoom)
                                 .id(board.id)
@@ -36,10 +37,29 @@ struct CreateView: View {
                 .background { DotGrid().ignoresSafeArea() }
                 .safeAreaInset(edge: .top, spacing: 0) { CreateHeader() }
                 .safeAreaInset(edge: .bottom, spacing: 0) { Composer() }
+                // Camera follow: frame the cable as the new board links in, then
+                // glide down with the sweep so the bottom row decodes on screen.
+                // Both wait a beat so the new views exist before scrolling.
                 .onChange(of: studio.boards.count) { _, _ in
                     guard let last = studio.boards.last else { return }
-                    withAnimation(.smooth(duration: 0.7)) {
-                        proxy.scrollTo(last.id, anchor: .bottom)
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(60))
+                        withAnimation(.smooth(duration: 0.8)) {
+                            if last.kind == .generation {
+                                proxy.scrollTo(Self.cableID(last), anchor: .top)
+                            } else {
+                                proxy.scrollTo(last.id, anchor: .top)
+                            }
+                        }
+                    }
+                }
+                .onChange(of: studio.boards.last?.phase) { _, phase in
+                    guard phase == .decoding, let last = studio.boards.last else { return }
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(0.8 * SettingsKey.speed.multiplier))
+                        withAnimation(.smooth(duration: 1.4)) {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
                     }
                 }
             }
@@ -55,6 +75,12 @@ struct CreateView: View {
         .sensoryFeedback(trigger: studio.decodeTicks) { _, _ in
             haptics ? .impact(weight: .light, intensity: 0.6) : nil
         }
+    }
+}
+
+extension CreateView {
+    static func cableID(_ board: Board) -> String {
+        "cable-\(board.id.uuidString)"
     }
 }
 

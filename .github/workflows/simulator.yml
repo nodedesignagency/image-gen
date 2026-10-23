@@ -68,15 +68,25 @@ jobs:
       - name: Record autopilot demo
         run: |
           mkdir -p out
-          xcrun simctl io "$UDID" recordVideo --codec=h264 --force out/decode-demo.mp4 &
-          REC=$!
-          sleep 3
-          xcrun simctl launch "$UDID" com.nodedesign.decode -autopilot YES
-          for i in $(seq -w 1 26); do
-            sleep 2
-            xcrun simctl io "$UDID" screenshot "out/shot-$i.png" > /dev/null 2>&1 || true
-          done
+          # Warm-up launch so the recorded launch is quick.
+          xcrun simctl launch "$UDID" com.nodedesign.decode
+          sleep 8
+          xcrun simctl terminate "$UDID" com.nodedesign.decode || true
           sleep 2
+
+          xcrun simctl io "$UDID" recordVideo --codec=h264 --force out/decode-demo.mp4 > recorder.log 2>&1 &
+          REC=$!
+          for _ in $(seq 1 120); do
+            grep -q "Recording started" recorder.log && break
+            sleep 0.5
+          done
+          cat recorder.log
+          sleep 1
+
+          xcrun simctl launch "$UDID" com.nodedesign.decode -autopilot YES
+          sleep 58
+          xcrun simctl io "$UDID" screenshot out/final.png > /dev/null 2>&1 || true
+
           kill -INT "$REC"
           wait "$REC" || true
           ls -la out

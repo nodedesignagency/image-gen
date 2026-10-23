@@ -11,21 +11,25 @@ struct Composer: View {
         let hasText = !studio.prompt.trimmingCharacters(in: .whitespaces).isEmpty
 
         VStack(spacing: 10) {
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(studio.presets) { preset in
-                        Button {
-                            studio.prompt = preset.prompt
-                        } label: {
-                            SuggestionChip(preset: preset, isSelected: studio.prompt == preset.prompt)
+            // Suggestions step aside while a board decodes, giving it more room.
+            if !studio.isGenerating {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 8) {
+                        ForEach(studio.presets) { preset in
+                            Button {
+                                studio.prompt = preset.prompt
+                            } label: {
+                                SuggestionChip(preset: preset, isSelected: studio.prompt == preset.prompt)
+                            }
+                            .buttonStyle(PressableStyle())
                         }
-                        .buttonStyle(PressableStyle())
                     }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 16)
+                .scrollIndicators(.hidden)
+                .scrollClipDisabled()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .scrollIndicators(.hidden)
-            .scrollClipDisabled()
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top, spacing: 8) {
@@ -102,6 +106,7 @@ struct Composer: View {
         }
         .padding(.top, 14)
         .padding(.bottom, 8)
+        .animation(.smooth(duration: 0.35), value: studio.isGenerating)
         .background { CanvasFade(edge: .bottom) }
     }
 }

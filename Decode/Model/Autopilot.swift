@@ -53,7 +53,11 @@ enum Autopilot {
         await studio.type("quiet ocean, glowing jellyfish")
         await pause(0.4)
         studio.enhance()
-        await pause(1.6)
+        await pause(1.2)
+        while studio.isEnhancing {
+            await pause(0.1)
+        }
+        await pause(0.4)
         studio.generate()
         await pause(4.8)
 
