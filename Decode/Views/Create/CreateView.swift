@@ -1,13 +1,16 @@
 import SwiftUI
 
-/// The one main screen: a dotted canvas of boards, each new generation
-/// cabled to the one before it, with the composer pinned to the bottom.
-struct StudioView: View {
+/// The Create tab: a dotted canvas of boards, each new generation cabled to
+/// the one before it, with the composer pinned to the bottom.
+struct CreateView: View {
     @Environment(Studio.self) private var studio
+    @AppStorage(SettingsKey.haptics) private var haptics = true
     @Namespace private var zoom
 
     var body: some View {
-        NavigationStack {
+        @Bindable var studio = studio
+
+        NavigationStack(path: $studio.createPath) {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 0) {
@@ -31,7 +34,7 @@ struct StudioView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .background { DotGrid().ignoresSafeArea() }
-                .safeAreaInset(edge: .top, spacing: 0) { Header() }
+                .safeAreaInset(edge: .top, spacing: 0) { CreateHeader() }
                 .safeAreaInset(edge: .bottom, spacing: 0) { Composer() }
                 .onChange(of: studio.boards.count) { _, _ in
                     guard let last = studio.boards.last else { return }
@@ -43,15 +46,19 @@ struct StudioView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: ShotRoute.self) { route in
                 ShotDetailView(route: route)
-                    .navigationTransition(.zoom(sourceID: route.shotID, in: zoom))
+                    .navigationTransition(.zoom(sourceID: route.id, in: zoom))
             }
         }
-        .sensoryFeedback(.impact(weight: .medium), trigger: studio.boards.count)
-        .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: studio.decodeTicks)
+        .sensoryFeedback(trigger: studio.boards.count) { _, _ in
+            haptics ? .impact(weight: .medium) : nil
+        }
+        .sensoryFeedback(trigger: studio.decodeTicks) { _, _ in
+            haptics ? .impact(weight: .light, intensity: 0.6) : nil
+        }
     }
 }
 
-private struct Header: View {
+private struct CreateHeader: View {
     @Environment(Studio.self) private var studio
 
     var body: some View {
@@ -64,74 +71,40 @@ private struct Header: View {
 
             Spacer()
 
-            HStack(spacing: 5) {
-                Image(systemName: "sparkle")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Theme.accent)
-                Text(verbatim: "\(studio.credits)")
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(Theme.ink)
-                    .contentTransition(.numericText(value: Double(studio.credits)))
-                    .animation(.smooth, value: studio.credits)
+            Button {
+                studio.showPaywall = true
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "sparkle")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.accent)
+                    Text(verbatim: "\(studio.credits)")
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Theme.ink)
+                        .contentTransition(.numericText(value: Double(studio.credits)))
+                        .animation(.smooth, value: studio.credits)
+                }
+                .padding(.horizontal, 12)
+                .frame(height: 34)
+                .background(Theme.card, in: Capsule())
+                .cardShadow()
             }
-            .padding(.horizontal, 12)
-            .frame(height: 32)
-            .background(Theme.card, in: Capsule())
-            .cardShadow()
+            .buttonStyle(PressableStyle())
+            .accessibilityLabel("\(studio.credits) credits")
 
             Menu {
-                Button("New canvas", systemImage: "square.dashed", role: .destructive) {
-                    withAnimation(.smooth) { studio.reset() }
+                Button("New canvas", systemImage: "square.dashed") {
+                    withAnimation(.smooth) { studio.resetCanvas() }
                 }
                 .disabled(studio.isGenerating)
             } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Theme.ink)
-                    .frame(width: 32, height: 32)
-                    .background(Theme.card, in: Circle())
-                    .cardShadow()
+                CircleIcon(systemImage: "ellipsis")
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 6)
         .padding(.bottom, 10)
-        .background {
-            LinearGradient(
-                stops: [
-                    .init(color: Theme.canvas, location: 0),
-                    .init(color: Theme.canvas, location: 0.7),
-                    .init(color: Theme.canvas.opacity(0), location: 1),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-        }
-    }
-}
-
-/// 2×2 bit grid, echoing a board.
-private struct LogoMark: View {
-    var body: some View {
-        let cell: CGFloat = 9
-        Grid(horizontalSpacing: 2.5, verticalSpacing: 2.5) {
-            GridRow {
-                square(Theme.ink, cell)
-                square(Theme.accent, cell)
-            }
-            GridRow {
-                square(Theme.ink.opacity(0.22), cell)
-                square(Theme.ink, cell)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private func square(_ color: Color, _ size: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: 2.5, style: .continuous)
-            .fill(color)
-            .frame(width: size, height: size)
+        .background { CanvasFade(edge: .top) }
     }
 }
 

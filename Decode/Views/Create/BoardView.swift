@@ -1,26 +1,16 @@
 import SwiftUI
 
-/// Value pushed onto the navigation stack when a finished image is tapped.
-struct ShotRoute: Hashable {
-    let shotID: UUID
-    let imageName: String
-    let title: String
-    let prompt: String
-    let seed: Int
-}
-
-/// A white "folder" card: label tab on top, 2×2 grid of shots inside.
+/// A white "folder" card: label tab on top, grid of shots inside.
 struct BoardView: View {
     let board: Board
     let zoom: Namespace.ID
 
-    private let columns = [
-        GridItem(.flexible(), spacing: Theme.cardPadding),
-        GridItem(.flexible(), spacing: Theme.cardPadding),
-    ]
-
     var body: some View {
         let isHidden = board.phase == .linking
+        let columns = Array(
+            repeating: GridItem(.flexible(), spacing: Theme.cardPadding),
+            count: board.shots.count == 1 ? 1 : 2
+        )
 
         VStack(alignment: .leading, spacing: 0) {
             BoardTab(board: board)
@@ -99,7 +89,7 @@ private struct BoardTab: View {
 }
 
 /// Pulsing accent dot shown while a board is still decoding.
-private struct LiveDot: View {
+struct LiveDot: View {
     @State private var pulse = false
 
     var body: some View {
@@ -128,7 +118,7 @@ private struct ShotCell: View {
 
     var body: some View {
         if shot.isDecoded {
-            NavigationLink(value: route) {
+            NavigationLink(value: board.route(for: shot)) {
                 tile
             }
             .buttonStyle(PressableStyle())
@@ -137,20 +127,10 @@ private struct ShotCell: View {
         }
     }
 
-    private var route: ShotRoute {
-        ShotRoute(
-            shotID: shot.id,
-            imageName: shot.imageName,
-            title: board.title,
-            prompt: board.prompt.isEmpty ? "Reference image from your moodboard." : board.prompt,
-            seed: shot.seed
-        )
-    }
-
     private var tile: some View {
         let shape = RoundedRectangle(cornerRadius: Theme.cellRadius, style: .continuous)
         return Color.clear
-            .aspectRatio(3 / 4, contentMode: .fit)
+            .aspectRatio(board.ratio.value, contentMode: .fit)
             .overlay { content }
             .clipShape(shape)
             .contentShape(shape)
@@ -159,11 +139,15 @@ private struct ShotCell: View {
 
     @ViewBuilder private var content: some View {
         if shot.isDecoded {
-            Image(shot.imageName)
-                .resizable()
-                .scaledToFill()
+            StyledImage(imageName: shot.imageName, style: board.style)
         } else if board.phase == .decoding {
-            DecodingImage(imageName: shot.imageName, start: shot.start, duration: shot.duration, seed: shot.seed)
+            DecodingImage(
+                imageName: shot.imageName,
+                start: shot.start,
+                duration: shot.duration,
+                seed: shot.seed,
+                style: board.style
+            )
         } else {
             Theme.placeholder
         }
@@ -194,12 +178,13 @@ private struct BoardFooter: View {
     private var status: String {
         switch board.phase {
         case .linking, .framing:
-            return "reading moodboard…"
+            return board.usedMoodboard ? "reading moodboard…" : "composing…"
         case .decoding:
             return "decoding \(board.decodedCount) of \(board.shots.count)"
         case .done:
             let seconds = String(format: "%.1f", board.elapsed ?? 0)
-            return "\(board.shots.count) images · 3:4 · \(seconds)s"
+            let noun = board.shots.count == 1 ? "image" : "images"
+            return "\(board.shots.count) \(noun) · \(board.ratio.rawValue) · \(board.style.rawValue.lowercased()) · \(seconds)s"
         }
     }
 }

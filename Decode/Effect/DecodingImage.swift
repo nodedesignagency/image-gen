@@ -14,6 +14,7 @@ struct DecodingImage: View {
     var seed: Int = 0
     /// Larger than 1 means bigger, sparser glyphs (used on the full-screen view).
     var density: CGFloat = 1
+    var style: ImageStyle = .natural
 
     var body: some View {
         GeometryReader { proxy in
@@ -30,6 +31,7 @@ struct DecodingImage: View {
                     Image(imageName)
                         .resizable()
                         .scaledToFill()
+                        .imageStyle(style)
                         .frame(width: proxy.size.width, height: proxy.size.height)
                         .clipped()
                         .mask {

@@ -6,7 +6,7 @@ struct DecodeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            StudioView()
+            RootView()
                 .environment(studio)
                 .preferredColorScheme(.light)
                 .tint(Theme.accent)
