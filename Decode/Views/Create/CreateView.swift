@@ -93,12 +93,26 @@ struct CreateView: View {
                     }
                 }
                 .onChange(of: studio.boards.last?.phase) { _, phase in
-                    guard phase == .decoding, let last = studio.boards.last else { return }
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(0.8 * SettingsKey.speed.multiplier))
-                        withAnimation(.smooth(duration: 1.4)) {
-                            proxy.scrollTo(Self.boardID(last), anchor: .bottom)
+                    guard let last = studio.boards.last else { return }
+                    switch phase {
+                    case .decoding:
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(0.8 * SettingsKey.speed.multiplier))
+                            withAnimation(.smooth(duration: 1.4)) {
+                                proxy.scrollTo(Self.boardID(last), anchor: .bottom)
+                            }
                         }
+                    case .done:
+                        // The suggestions slide back in under the finished board;
+                        // once they have, lift the board so its chips stay clear.
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(450))
+                            withAnimation(.smooth(duration: 0.6)) {
+                                proxy.scrollTo(Self.boardID(last), anchor: .bottom)
+                            }
+                        }
+                    default:
+                        break
                     }
                 }
 
