@@ -66,15 +66,35 @@ struct ImagePalette {
 }
 
 /// Palettes are tiny but sampling decodes the JPEG, so keep them around.
+/// Read and written on the main thread; `warm` does the decoding elsewhere
+/// and hands the result back.
 final class PaletteCache {
     static let shared = PaletteCache()
     private var store: [String: ImagePalette] = [:]
 
     func palette(for name: String, columns: Int, rows: Int) -> ImagePalette {
-        let key = "\(name)#\(columns)x\(rows)"
+        let key = Self.key(name, columns, rows)
         if let hit = store[key] { return hit }
         let made = ImagePalette.make(from: UIImage(named: name), columns: columns, rows: rows)
         store[key] = made
         return made
+    }
+
+    /// Builds the palette off the main thread so the first use doesn't stall.
+    func warm(_ name: String, columns: Int, rows: Int) {
+        let key = Self.key(name, columns, rows)
+        guard store[key] == nil else { return }
+        Task.detached(priority: .userInitiated) {
+            let made = ImagePalette.make(from: UIImage(named: name), columns: columns, rows: rows)
+            await MainActor.run {
+                if PaletteCache.shared.store[key] == nil {
+                    PaletteCache.shared.store[key] = made
+                }
+            }
+        }
+    }
+
+    private static func key(_ name: String, _ columns: Int, _ rows: Int) -> String {
+        "\(name)#\(columns)x\(rows)"
     }
 }

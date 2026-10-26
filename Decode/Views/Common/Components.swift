@@ -154,23 +154,79 @@ struct Panel<Content: View>: View {
     }
 }
 
-/// Small grey capsule holding a symbol and a value.
+/// Small chip holding a symbol and a mono value, like a property in a node
+/// editor. `onCard` is a soft grey fill for white surfaces, `onCanvas` a white
+/// chip for the grey canvas, `live` an accent chip for something in progress.
 struct MetaChip: View {
-    let systemImage: String
+    enum Tone { case onCard, onCanvas, live }
+
+    let systemImage: String?
     let text: String
+    var tone: Tone = .onCard
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
         HStack(spacing: 5) {
-            Image(systemName: systemImage)
-                .font(.system(size: 10, weight: .semibold))
-            Text(text)
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            Text(verbatim: text)
                 .font(.monoMeta)
+                .contentTransition(.numericText())
         }
-        .foregroundStyle(Theme.ink.opacity(0.7))
-        .padding(.horizontal, 9)
-        .frame(height: 26)
-        .background(Theme.card, in: Capsule())
-        .overlay { Capsule().strokeBorder(Theme.hairline, lineWidth: 1) }
+        .foregroundStyle(tone == .live ? Theme.accent : Theme.ink.opacity(0.72))
+        .padding(.horizontal, 8)
+        .frame(height: 24)
+        .background {
+            switch tone {
+            case .onCard:
+                shape.fill(Theme.ink.opacity(0.05))
+            case .onCanvas:
+                shape.fill(Theme.card)
+                shape.strokeBorder(Theme.hairline, lineWidth: 1)
+            case .live:
+                shape.fill(Theme.accent.opacity(0.09))
+            }
+        }
+    }
+}
+
+/// Lays chips out left to right and wraps onto a new row when they don't fit,
+/// so metadata never scrolls or truncates.
+struct ChipFlow: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        arrange(subviews, width: proposal.width ?? .infinity).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let origins = arrange(subviews, width: bounds.width).origins
+        for (subview, origin) in zip(subviews, origins) {
+            subview.place(at: CGPoint(x: bounds.minX + origin.x, y: bounds.minY + origin.y), proposal: .unspecified)
+        }
+    }
+
+    private func arrange(_ subviews: Subviews, width: CGFloat) -> (size: CGSize, origins: [CGPoint]) {
+        var origins: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var widest: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > width {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            origins.append(CGPoint(x: x, y: y))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+            widest = max(widest, x - spacing)
+        }
+        return (CGSize(width: widest, height: y + rowHeight), origins)
     }
 }
 

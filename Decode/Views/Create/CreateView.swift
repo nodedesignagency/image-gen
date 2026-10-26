@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 
 /// The Create tab: a dotted canvas of boards, each new generation cabled to
@@ -9,14 +10,24 @@ struct CreateView: View {
     @AppStorage(SettingsKey.edgeLens) private var edgeLens = true
     @AppStorage(SettingsKey.reduceEffects) private var reduceEffects = false
     @State private var composerHeight: CGFloat = 200
-    /// Status bar + header: the zone the edge lens and top blur cover.
-    @State private var topInset: CGFloat = 110
+    // Edges for the lens, all measured in the same (.global) space as the
+    // boards measure themselves, so it doesn't matter where its origin is.
+    @State private var headerBottom: CGFloat = 110
+    @State private var panelTop: CGFloat = 700
+    @State private var canvasBottom: CGFloat = 874
 
     var body: some View {
         @Bindable var studio = studio
-        // The edge lens bends boards and cables alike, per view, so only the
-        // ones under the header are ever run through the shader.
-        let lensBand = topInset + 12
+        // Thick-glass edges: boards are magnified as they slide under the
+        // header and under the composer's glass. The top band reaches well
+        // past the header, as in the reference, so the bend shows before the
+        // blur takes over; the bottom one starts just above the panel, since
+        // anything higher would warp a board between the suggestion chips.
+        let lens = EdgeLensBands(
+            top: headerBottom + 70,
+            bottomStart: panelTop - 24,
+            bottom: max(1, canvasBottom - panelTop + 24)
+        )
         let lensOn = edgeLens && !reduceEffects
 
         NavigationStack(path: $studio.createPath) {
@@ -28,12 +39,11 @@ struct CreateView: View {
                             if index > 0 {
                                 Cable(isLive: board.phase != .done)
                                     .frame(height: 64)
-                                    .edgeLens(band: lensBand, isEnabled: lensOn)
                                     .id(Self.cableID(board))
                                     .zIndex(1) // plugs sit on top of the tab, not under it
                             }
                             BoardView(board: board, zoom: zoom)
-                                .edgeLens(band: lensBand, isEnabled: lensOn)
+                                .edgeLens(lens, isEnabled: lensOn)
                                 .id(Self.boardID(board))
                         }
 
@@ -46,7 +56,7 @@ struct CreateView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
-                .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { topInset = $0 }
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { canvasBottom = $0 }
                 .scrollDismissesKeyboard(.interactively)
                 .background {
                     ZStack {
@@ -57,12 +67,15 @@ struct CreateView: View {
                     }
                     .ignoresSafeArea()
                 }
-                .edgeBar(.top, lite: reduceEffects) { CreateHeader() }
-                // Room for the last board to scroll clear of the composer. A
-                // content margin, not safe-area padding: padding derived from
-                // the composer's own height fed back into its position and
-                // lifted it by that height on first appearance.
-                .contentMargins(.bottom, max(0, composerHeight - 18), for: .scrollContent)
+                .edgeBar(.top, lite: reduceEffects) {
+                    CreateHeader()
+                        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { headerBottom = $0 }
+                }
+                // Room for the last board, chips included, to scroll clear of
+                // the composer. A content margin, not safe-area padding: padding
+                // derived from the composer's own height fed back into its
+                // position and lifted it by that height on first appearance.
+                .contentMargins(.bottom, composerHeight + 6, for: .scrollContent)
                 // Camera follow: frame the cable as the new board links in, then
                 // glide down with the sweep so the bottom row decodes on screen.
                 // Both wait a beat so the new views exist before scrolling.
@@ -80,17 +93,31 @@ struct CreateView: View {
                     }
                 }
                 .onChange(of: studio.boards.last?.phase) { _, phase in
-                    guard phase == .decoding, let last = studio.boards.last else { return }
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(0.8 * SettingsKey.speed.multiplier))
-                        withAnimation(.smooth(duration: 1.4)) {
-                            proxy.scrollTo(Self.boardID(last), anchor: .bottom)
+                    guard let last = studio.boards.last else { return }
+                    switch phase {
+                    case .decoding:
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(0.8 * SettingsKey.speed.multiplier))
+                            withAnimation(.smooth(duration: 1.4)) {
+                                proxy.scrollTo(Self.boardID(last), anchor: .bottom)
+                            }
                         }
+                    case .done:
+                        // The suggestions slide back in under the finished board;
+                        // once they have, lift the board so its chips stay clear.
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(450))
+                            withAnimation(.smooth(duration: 0.6)) {
+                                proxy.scrollTo(Self.boardID(last), anchor: .bottom)
+                            }
+                        }
+                    default:
+                        break
                     }
                 }
 
                 // Floats ~10pt off the bottom edge, inside the home-indicator area.
-                Composer()
+                Composer(panelTop: $panelTop)
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { composerHeight = $0 }
                     .padding(.bottom, 10)
                     .ignoresSafeArea(.container, edges: .bottom)
@@ -102,6 +129,9 @@ struct CreateView: View {
                 ShotDetailView(route: route)
                     .navigationTransition(.zoom(sourceID: route.id, in: zoom))
             }
+        }
+        .onChange(of: lens, initial: true) { _, bands in
+            Self.log.log("edge lens: top \(bands.top, format: .fixed(precision: 0)) bottomStart \(bands.bottomStart, format: .fixed(precision: 0)) bottom \(bands.bottom, format: .fixed(precision: 0))")
         }
         .sensoryFeedback(trigger: studio.boards.count) { _, _ in
             haptics ? .impact(weight: .medium) : nil
@@ -115,6 +145,8 @@ struct CreateView: View {
 // Scroll targets need ids distinct from the ForEach row identity (board.id):
 // scrolling to the row id lands on its first child, the cable.
 extension CreateView {
+    static let log = Logger(subsystem: "com.nodedesign.decode", category: "canvas")
+
     static func cableID(_ board: Board) -> String {
         "cable-\(board.id.uuidString)"
     }

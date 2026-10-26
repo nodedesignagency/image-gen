@@ -212,7 +212,21 @@ final class Studio {
         withAnimation(.smooth(duration: 0.4)) {
             boards.append(board)
         }
+        Self.warm(board.shots.map(\.imageName))
         Task { await run(board) }
+    }
+
+    /// Decodes the JPEGs and their ambient-light palettes off the main thread
+    /// now, so the first decode frame isn't the one that pays for it.
+    private static func warm(_ names: [String]) {
+        for name in names {
+            PaletteCache.shared.warm(name, columns: 3, rows: 3)
+        }
+        Task.detached(priority: .userInitiated) {
+            for name in names {
+                _ = UIImage(named: name)?.preparingForDisplay()
+            }
+        }
     }
 
     private func run(_ board: Board) async {

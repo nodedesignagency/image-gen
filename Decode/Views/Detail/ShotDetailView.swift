@@ -54,19 +54,15 @@ struct ShotDetailView: View {
                 }
                 .padding(.horizontal, 4)
 
-                ScrollView(.horizontal) {
-                    HStack(spacing: 6) {
-                        MetaChip(systemImage: "cpu", text: route.model.slug)
-                        MetaChip(systemImage: route.ratio.symbol, text: route.ratio.rawValue)
-                        MetaChip(systemImage: route.style.symbol, text: route.style.rawValue.lowercased())
-                        MetaChip(systemImage: "number", text: "\(route.seed * 7919 % 99_991)")
-                        MetaChip(systemImage: "rectangle.dashed", text: isUpscaled ? "2× upscaled" : route.ratio.pixels)
-                    }
-                    .padding(.horizontal, 16)
+                ChipFlow {
+                    MetaChip(systemImage: "cpu", text: route.model.slug, tone: .onCanvas)
+                    MetaChip(systemImage: route.ratio.symbol, text: route.ratio.rawValue, tone: .onCanvas)
+                    MetaChip(systemImage: route.style.symbol, text: route.style.rawValue.lowercased(), tone: .onCanvas)
+                    MetaChip(systemImage: "number", text: "\(route.seed * 7919 % 99_991)", tone: .onCanvas)
+                    MetaChip(systemImage: "rectangle.dashed", text: isUpscaled ? "2× upscaled" : route.ratio.pixels, tone: .onCanvas)
                 }
-                .scrollIndicators(.hidden)
-                .scrollClipDisabled()
-                .padding(.horizontal, -16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 4)
 
                 HStack(spacing: 8) {
                     Button {

@@ -5,8 +5,8 @@ import SwiftUI
 /// composer, two echo faintly under the header.
 ///
 /// Fills the whole screen and fades its own edges, so nothing gets clipped.
-/// Static between generations: six blurred layers re-rendered every frame was
-/// most of the app's GPU time, so they only cross-fade when the images change.
+/// Plain radial gradients, no blur: they're already soft, and a blurred layer
+/// had to be re-rendered on every frame of the cross-fade between generations.
 struct AmbientWash: View {
     let images: [String]
     var opacity = 0.5
@@ -26,9 +26,20 @@ struct AmbientWash: View {
                     let ys: [CGFloat] = isTop ? [0.0, 0.02] : [0.9, 0.84, 0.94, 1.04]
 
                     Ellipse()
-                        .fill(RadialGradient(colors: [light, light.opacity(0)], center: .center, startRadius: 0, endRadius: width * 0.42))
-                        .frame(width: width * 0.9, height: width * 0.7)
-                        .blur(radius: 36)
+                        .fill(
+                            RadialGradient(
+                                stops: [
+                                    .init(color: light, location: 0),
+                                    .init(color: light.opacity(0.55), location: 0.3),
+                                    .init(color: light.opacity(0.12), location: 0.7),
+                                    .init(color: light.opacity(0), location: 1),
+                                ],
+                                center: .center,
+                                startRadius: 0,
+                                endRadius: width * 0.55
+                            )
+                        )
+                        .frame(width: width * 1.1, height: width * 0.85)
                         .opacity(isTop ? 0.5 : 1)
                         .position(
                             x: xs[slot] * width + sin(seed * 2.3) * width * 0.08,
@@ -37,7 +48,6 @@ struct AmbientWash: View {
                 }
             }
             .opacity(opacity)
-            .drawingGroup()
             .mask {
                 LinearGradient(
                     stops: [

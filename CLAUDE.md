@@ -3,7 +3,9 @@
 Front-end-only SwiftUI image-generation app, built for screen-recorded social videos. No model:
 "generating" decodes bundled photo sets. The signature effect is the **binary reveal**: images
 decode top-to-bottom from 0s and 1s (blue front, bits tinted with the image's colours, pixels fade
-in behind). See README.md for the feature tour.
+in behind). It runs entirely in a Metal shader (`decodeReveal` in `Effect/Shaders.metal`, driven
+by `Effect/DecodingImage.swift`): glyphs are distance fields, colours are sampled from the image,
+and the CPU only supplies a clock. See README.md for the feature tour.
 
 ## Rules for every update
 
@@ -37,8 +39,14 @@ in behind). See README.md for the feature tour.
 - `VariableBlur` uses Core Animation's private `variableBlur` filter (fine for this demo, not App
   Store-safe) and must re-apply its filter in `layoutSubviews`.
 - Performance matters to the user ("feels heavy"). Avoid anything that re-blurs or re-rasterises
-  large areas every frame. Decode/cable timelines run at 30 fps. Profile has a **Reduce effects**
-  switch that turns glass, blur, lights and lens into flat fills.
+  large areas every frame, and never draw per-frame animation with `Canvas` text (the old decode
+  drew ~1400 glyphs a frame and ran at 20 fps on the user's Mac). Put per-frame effects in
+  `Shaders.metal`. Profile has a **Reduce effects** switch that turns glass, blur, lights and
+  lens into flat fills.
+- Image JPEGs and ambient palettes are pre-warmed off the main thread in `Studio.generate()`.
+- Measuring smoothness: a QuickTime recording of the simulator at 60 fps has duplicate frames
+  where the app stalled; count unique frames per half second (numpy over `ffmpeg -f rawvideo`).
+  The baseline before the shader rewrite was 9–12 unique per half second during a decode.
 - Shadows go on still shapes *behind* live content (`FolderShape` behind boards, a filled shape
   behind decoding images), never on the content itself, or the whole view is re-rendered and
   re-blurred on every decode frame.
@@ -53,18 +61,23 @@ in behind). See README.md for the feature tour.
   dark prompt boxes with a top-left glow and light rim; Perplexity's composer layout.
 - Glass needs something behind it: `AmbientWash` paints static soft lights from the latest board's
   colours behind the canvas edges.
-- Composer: roomy 2-line prompt, round moodboard + enhance buttons, mono pills for model
+- Composer: roomy 2-line prompt, round moodboard + enhance buttons, plain mono pills for model
   (`decode-2`, `decode-2-pro` costs 2 credits, `decode-lite`) and style, light send button.
+  **The row never scrolls** (user hated the clipped pills); it is sized so the longest names fit.
   Floats ~10pt above the bottom edge with screen-concentric bottom corners.
+- Metadata is shown as small chips (`MetaChip`, Framer-property style: grey fill on cards, white
+  on the canvas, accent while live) in a wrapping `ChipFlow`, never a horizontal scroll.
 - **Output is always 4 square (1:1) images** so the whole 2×2 decodes on screen in recordings.
 - **Tab bar hidden.** The ☰ glass button (top left) is the navigation (Create / Explore / Library /
   Profile, New canvas, Play demo). No logo in the Create header.
 - Short progressive blur under the top bar only (status bar + header).
-- **Edge lens** (on by default): boards and cables stretch toward the top edge and their sides
-  draw in as they slide under the header blur (`View.edgeLens` in `Effect/EdgeLens.swift`, shader
-  in `Effect/Shaders.metal`). Applied per view but computed in screen space, so neighbours bend
-  together; stretch stays under a third of the band so it never folds. User asked for this after
-  a reference video where cards bend at the screen edges while scrolling.
+- **Edge lens** (on by default): boards are magnified toward the edge as they leave the screen,
+  under the header and under the composer: content stretches along the scroll axis, the sides
+  flare out, and it smears along the stretch (`View.edgeLens` in `Effect/EdgeLens.swift`, a
+  `layerEffect` in `Shaders.metal`). Per board but computed in screen space; cables are *not*
+  lensed (a thin line through it read as a blob). Reference: a carousel where cards stretch and
+  blur into the screen edges like thick glass. Bands reach ~70pt past the header and ~50pt above
+  the composer; stretch is 0.34 of the band, widen 0.14, smear 0.08.
 - Typography: SF for prose, SF Mono for machine values (counts, model ids, seeds, prices, timers,
   bits). Use the named scale in `App/Theme.swift` (`.display`, `.screenTitle`, `.heading`,
   `.prose`, `.button`, `.label`, `.chip`, `.supporting`, `.note`, `.micro`; `.monoStat`,
@@ -73,9 +86,12 @@ in behind). See README.md for the feature tour.
 
 ## Open items
 
-- "Heavy" is still unconfirmed on the user's Mac (CI can't tell). Latest fix: shadows moved off
-  live content. Ask for a short Mac recording if they report it again.
-- Edge lens: possibly also at the bottom edge (behind the composer); ask before adding.
+- Confirm on the user's Mac that the shader decode runs smoothly (ask for a 10 s recording and
+  count unique frames). Remaining known hitch: ~200 ms when generate is tapped (glass composer
+  resizing as the suggestions hide, new board + cable appearing).
+- Lens tuning against the reference (strength, band size, bottom edge) is new and unreviewed.
+- The user wants the whole thing to look premium for a client-facing post: keep polishing
+  typography and spacing wherever a screenshot shows something rough.
 
 ## Layout
 
