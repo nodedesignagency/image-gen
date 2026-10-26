@@ -54,6 +54,20 @@ struct BoardCardShape: Shape {
     }
 }
 
+/// A board's tab and card as one outline, sized by the measured tab. Drawn
+/// behind a board to cast its shadow.
+struct FolderShape: Shape {
+    var tabSize: CGSize
+
+    func path(in rect: CGRect) -> Path {
+        let tab = FolderTabShape().path(in: CGRect(origin: rect.origin, size: tabSize))
+        let card = BoardCardShape().path(
+            in: CGRect(x: rect.minX, y: rect.minY + tabSize.height, width: rect.width, height: max(0, rect.height - tabSize.height))
+        )
+        return tab.union(card)
+    }
+}
+
 /// Light dot lattice behind everything, like a node editor's canvas.
 struct DotGrid: View {
     var spacing: CGFloat = 20

@@ -14,11 +14,11 @@ struct PaywallView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Decode Pro")
-                        .font(.system(size: 30, weight: .semibold))
+                        .font(.display)
                         .tracking(-0.8)
                         .foregroundStyle(Theme.ink)
                     Text("More bits, more takes. Everything you need to make a series.")
-                        .font(.system(size: 15))
+                        .font(.prose)
                         .foregroundStyle(Theme.secondary)
                 }
 
@@ -39,7 +39,7 @@ struct PaywallView: View {
                     dismiss()
                 } label: {
                     Text("Start 7-day free trial")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.button)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
@@ -48,7 +48,7 @@ struct PaywallView: View {
                 .buttonStyle(PressableStyle())
 
                 Text("Demo only. Nothing is charged.")
-                    .font(.system(size: 12))
+                    .font(.note)
                     .foregroundStyle(Theme.secondary)
                     .frame(maxWidth: .infinity)
             }
@@ -79,14 +79,14 @@ struct PaywallView: View {
             .clipShape(shape)
             .overlay(alignment: .bottomLeading) {
                 Text(verbatim: "PRO")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .font(.monoBadge)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(Theme.accent, in: Capsule())
                     .padding(14)
             }
-            .cardShadow()
+            .background { shape.fill(Theme.placeholder).cardShadow() }
             .padding(.top, 28)
     }
 
@@ -98,7 +98,7 @@ struct PaywallView: View {
                 .frame(width: 30, height: 30)
                 .background(Theme.accent.opacity(0.09), in: Circle())
             Text(text)
-                .font(.system(size: 15))
+                .font(.prose)
                 .foregroundStyle(Theme.ink)
         }
     }
@@ -119,16 +119,16 @@ private struct PlanOption: View {
                     .foregroundStyle(isSelected ? Theme.accent : Theme.secondary.opacity(0.5))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.heading)
                         .foregroundStyle(Theme.ink)
                     Text(price)
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.monoValue)
                         .foregroundStyle(Theme.secondary)
                 }
                 Spacer()
                 if let note {
                     Text(note)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.monoMeta.weight(.semibold))
                         .foregroundStyle(Theme.accent)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)

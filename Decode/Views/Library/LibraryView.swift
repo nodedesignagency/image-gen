@@ -26,7 +26,7 @@ struct LibraryView: View {
                     ForEach(sections) { section in
                         VStack(alignment: .leading, spacing: 10) {
                             Text(section.title)
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.heading)
                                 .foregroundStyle(Theme.ink)
                                 .padding(.horizontal, 4)
 
@@ -89,11 +89,11 @@ private struct LibraryStats: View {
     private func stat(_ value: String, _ label: String) -> some View {
         VStack(spacing: 2) {
             Text(verbatim: value)
-                .font(.system(size: 19, weight: .semibold, design: .monospaced))
+                .font(.monoStat)
                 .foregroundStyle(Theme.ink)
                 .contentTransition(.numericText())
             Text(label)
-                .font(.system(size: 11))
+                .font(.micro)
                 .foregroundStyle(Theme.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -118,7 +118,7 @@ private struct SegmentToggle: View {
             withAnimation(.spring(duration: 0.35, bounce: 0.2)) { action() }
         } label: {
             Text(title)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.chip.weight(.semibold))
                 .foregroundStyle(isOn ? Theme.ink : Theme.secondary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 32)
@@ -171,10 +171,10 @@ private struct EmptyLibrary: View {
                 .font(.system(size: 26, weight: .light))
                 .foregroundStyle(Theme.secondary)
             Text(favoritesOnly ? "No favourites yet" : "Nothing here yet")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.heading)
                 .foregroundStyle(Theme.ink)
             Text(favoritesOnly ? "Tap the heart on any image to keep it here." : "Your generations will collect here.")
-                .font(.system(size: 13))
+                .font(.supporting)
                 .foregroundStyle(Theme.secondary)
         }
         .frame(maxWidth: .infinity)

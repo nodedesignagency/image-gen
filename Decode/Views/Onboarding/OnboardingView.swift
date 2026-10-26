@@ -33,14 +33,14 @@ struct OnboardingView: View {
             HStack {
                 LogoMark()
                 Text("decode")
-                    .font(.system(size: 19, weight: .semibold))
+                    .font(.sans(19, .semibold))
                     .tracking(-0.5)
                     .foregroundStyle(Theme.ink)
                 Spacer()
                 Button("Skip") {
                     studio.finishOnboarding()
                 }
-                .font(.system(size: 15, weight: .medium))
+                .font(.label)
                 .foregroundStyle(Theme.secondary)
                 .opacity(isLast ? 0 : 1)
             }
@@ -74,7 +74,7 @@ struct OnboardingView: View {
                 }
             } label: {
                 Text(isLast ? "Start creating" : "Continue")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.button)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
@@ -113,20 +113,23 @@ private struct OnboardingPageView: View {
                 }
                 .clipShape(shape)
                 .padding(8)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 36, style: .continuous))
-                .cardShadow()
+                .background {
+                    RoundedRectangle(cornerRadius: 36, style: .continuous)
+                        .fill(Theme.card)
+                        .cardShadow()
+                }
                 .frame(maxWidth: .infinity)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(verbatim: page.kicker)
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .font(.monoMeta.weight(.semibold))
                     .foregroundStyle(Theme.accent)
                 Text(page.title)
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(.display)
                     .tracking(-0.8)
                     .foregroundStyle(Theme.ink)
                 Text(page.body)
-                    .font(.system(size: 16))
+                    .font(.prose)
                     .foregroundStyle(Theme.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

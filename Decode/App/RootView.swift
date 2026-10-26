@@ -81,13 +81,13 @@ private struct SplashView: View {
                     .rotationEffect(.degrees(appeared ? 0 : -45))
 
                 ScrambleText(text: "decode", delay: 0.25, perCharacter: 0.07)
-                    .font(.system(size: 34, weight: .semibold))
+                    .font(.sans(34, .semibold))
                     .tracking(-1)
                     .foregroundStyle(Theme.ink)
                     .frame(height: 40)
 
                 Text(verbatim: "image generation, bit by bit")
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .font(.monoMeta)
                     .foregroundStyle(Theme.secondary)
                     .opacity(appeared ? 1 : 0)
                     .animation(.smooth(duration: 0.6).delay(0.6), value: appeared)

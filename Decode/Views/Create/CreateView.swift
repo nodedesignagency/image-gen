@@ -14,6 +14,10 @@ struct CreateView: View {
 
     var body: some View {
         @Bindable var studio = studio
+        // The edge lens bends boards and cables alike, per view, so only the
+        // ones under the header are ever run through the shader.
+        let lensBand = topInset + 12
+        let lensOn = edgeLens && !reduceEffects
 
         NavigationStack(path: $studio.createPath) {
             ScrollViewReader { proxy in
@@ -24,10 +28,12 @@ struct CreateView: View {
                             if index > 0 {
                                 Cable(isLive: board.phase != .done)
                                     .frame(height: 64)
+                                    .edgeLens(band: lensBand, isEnabled: lensOn)
                                     .id(Self.cableID(board))
                                     .zIndex(1) // plugs sit on top of the tab, not under it
                             }
-                            BoardView(board: board, zoom: zoom, lensBand: topInset + 12, lensEnabled: edgeLens && !reduceEffects)
+                            BoardView(board: board, zoom: zoom)
+                                .edgeLens(band: lensBand, isEnabled: lensOn)
                                 .id(Self.boardID(board))
                         }
 
@@ -136,7 +142,7 @@ private struct CreateHeader: View {
                         Image(systemName: "sparkle")
                             .font(.system(size: 11, weight: .bold))
                         Text(verbatim: "\(studio.credits)")
-                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                            .font(.monoValue.weight(.semibold))
                             .contentTransition(.numericText(value: Double(studio.credits)))
                             .animation(.smooth, value: studio.credits)
                     }
@@ -172,10 +178,10 @@ private struct EmptyHint: View {
     var body: some View {
         VStack(spacing: 6) {
             Text(verbatim: "01100100")
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .font(.monoMeta)
                 .foregroundStyle(Theme.accent)
             Text("Pick a suggestion or describe a shot.\nIt decodes right here, bit by bit.")
-                .font(.system(size: 14))
+                .font(.supporting)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(Theme.secondary)
         }

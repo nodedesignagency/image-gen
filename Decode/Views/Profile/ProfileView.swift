@@ -18,7 +18,7 @@ struct ProfileView: View {
                     demo
 
                     Text(verbatim: "decode 1.0 · front-end demo · images from Unsplash")
-                        .font(.system(size: 11, design: .monospaced))
+                        .font(.monoMeta)
                         .foregroundStyle(Theme.secondary)
                         .padding(.top, 4)
                 }
@@ -44,11 +44,11 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text("Node Design")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.sans(18, .semibold))
                             .foregroundStyle(Theme.ink)
                         if studio.isPro {
                             Text("PRO")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .font(.monoBadge)
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -56,7 +56,7 @@ struct ProfileView: View {
                         }
                     }
                     Text(verbatim: "@nodedesign")
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.monoValue)
                         .foregroundStyle(Theme.secondary)
                 }
                 Spacer(minLength: 0)
@@ -82,11 +82,11 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Label(studio.isPro ? "Decode Pro" : "Free plan", systemImage: "sparkle")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.heading)
                         .foregroundStyle(Theme.ink)
                     Spacer()
                     Text(verbatim: "\(studio.credits) / \(total)")
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .font(.monoMeta)
                         .foregroundStyle(Theme.secondary)
                         .contentTransition(.numericText())
                 }
@@ -103,7 +103,7 @@ struct ProfileView: View {
                 .animation(.smooth, value: fraction)
 
                 Text(studio.isPro ? "Credits refill on the 1st of every month." : "Each image costs one credit. Pro gives you 1,000 a month.")
-                    .font(.system(size: 13))
+                    .font(.supporting)
                     .foregroundStyle(Theme.secondary)
 
                 if !studio.isPro {
@@ -111,7 +111,7 @@ struct ProfileView: View {
                         studio.showPaywall = true
                     } label: {
                         Text("Upgrade to Pro")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.button)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -158,7 +158,7 @@ struct ProfileView: View {
                     SettingRow(systemImage: "bolt", title: "Reduce effects")
                 }
                 Text("Flat glass, no blur, no lights. Use it if the simulator stutters while recording.")
-                    .font(.system(size: 12))
+                    .font(.note)
                     .foregroundStyle(Theme.secondary)
                     .padding(.leading, 36)
             }
@@ -210,11 +210,11 @@ struct ProfileView: View {
     private func stat(_ value: String, _ label: String) -> some View {
         VStack(spacing: 2) {
             Text(verbatim: value)
-                .font(.system(size: 18, weight: .semibold, design: .monospaced))
+                .font(.monoStat)
                 .foregroundStyle(Theme.ink)
                 .contentTransition(.numericText())
             Text(label)
-                .font(.system(size: 11))
+                .font(.micro)
                 .foregroundStyle(Theme.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -230,7 +230,7 @@ private struct SectionLabel: View {
 
     var body: some View {
         Text(title.uppercased())
-            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            .font(.monoMeta.weight(.semibold))
             .foregroundStyle(Theme.secondary)
             .padding(.horizontal, 16)
             .padding(.top, 14)
@@ -249,7 +249,7 @@ private struct SettingRow: View {
                 .foregroundStyle(Theme.ink)
                 .frame(width: 24)
             Text(title)
-                .font(.system(size: 15))
+                .font(.prose)
                 .foregroundStyle(Theme.ink)
         }
     }
@@ -270,11 +270,11 @@ private struct ActionRow: View {
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 15))
+                        .font(.prose)
                         .foregroundStyle(Theme.ink)
                     if let detail {
                         Text(detail)
-                            .font(.system(size: 12))
+                            .font(.note)
                             .foregroundStyle(Theme.secondary)
                     }
                 }

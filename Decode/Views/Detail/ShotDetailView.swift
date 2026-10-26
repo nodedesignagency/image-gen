@@ -25,12 +25,12 @@ struct ShotDetailView: View {
                     HStack(spacing: 8) {
                         Avatar(name: author, size: 26)
                         Text(verbatim: author)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.label.weight(.semibold))
                             .foregroundStyle(Theme.ink)
                         Spacer()
                         if let likes = route.likes {
                             Label(likes.compact, systemImage: "heart")
-                                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                                .font(.monoValue)
                                 .foregroundStyle(Theme.secondary)
                         }
                     }
@@ -39,11 +39,11 @@ struct ShotDetailView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(route.title)
-                        .font(.system(size: 24, weight: .semibold))
-                        .tracking(-0.5)
+                        .font(.screenTitle)
+                        .tracking(-0.7)
                         .foregroundStyle(Theme.ink)
                     Text(route.prompt)
-                        .font(.system(size: 15))
+                        .font(.prose)
                         .foregroundStyle(Theme.ink.opacity(0.7))
                         .fixedSize(horizontal: false, vertical: true)
                         .contextMenu {
@@ -161,7 +161,7 @@ struct ShotDetailView: View {
             .overlay(alignment: .bottomLeading) {
                 if isUpscaled {
                     Text(verbatim: "2×")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(.monoBadge)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -171,7 +171,7 @@ struct ShotDetailView: View {
                 }
             }
             .animation(.spring(duration: 0.4, bounce: 0.4), value: isUpscaled)
-            .cardShadow()
+            .background { shape.fill(Theme.placeholder).cardShadow() }
     }
 
     private func play(density: CGFloat, duration: Double) {
@@ -195,7 +195,7 @@ private struct ActionLabel: View {
 
     var body: some View {
         Label(title, systemImage: systemImage)
-            .font(.system(size: 14, weight: .semibold))
+            .font(.label.weight(.semibold))
             .foregroundStyle(isProminent ? Color.white : Theme.ink)
             .frame(maxWidth: .infinity)
             .frame(height: 48)
@@ -228,7 +228,7 @@ private struct SmallActionLabel: View {
                 .font(.system(size: 16, weight: .medium))
                 .frame(height: 20)
             Text(title)
-                .font(.system(size: 12, weight: .medium))
+                .font(.note.weight(.medium))
         }
         .foregroundStyle(Theme.ink)
         .frame(maxWidth: .infinity)

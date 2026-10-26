@@ -69,7 +69,7 @@ private struct FilterBar: View {
                         selection = filter
                     } label: {
                         Text(filter.rawValue)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.chip)
                             .foregroundStyle(isOn ? Color.white : Theme.ink)
                             .padding(.horizontal, 14)
                             .frame(height: 34)
@@ -107,14 +107,14 @@ private struct FeedCard: View {
             HStack(spacing: 6) {
                 Avatar(name: item.author, size: 18)
                 Text(verbatim: item.author)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.note.weight(.medium))
                     .foregroundStyle(Theme.ink.opacity(0.75))
                     .lineLimit(1)
                 Spacer(minLength: 4)
                 Image(systemName: "heart")
                     .font(.system(size: 11, weight: .semibold))
                 Text(verbatim: item.likes.compact)
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .font(.monoMeta)
             }
             .foregroundStyle(Theme.secondary)
             .padding(.horizontal, 2)

@@ -41,7 +41,7 @@ struct TopBar<Trailing: View>: View {
         HStack(alignment: .center, spacing: 12) {
             AppMenuButton()
             Text(title)
-                .font(.system(size: 26, weight: .semibold))
+                .font(.screenTitle)
                 .tracking(-0.7)
                 .foregroundStyle(Theme.ink)
             Spacer(minLength: 0)
@@ -164,7 +164,7 @@ struct MetaChip: View {
             Image(systemName: systemImage)
                 .font(.system(size: 10, weight: .semibold))
             Text(text)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .font(.monoMeta)
         }
         .foregroundStyle(Theme.ink.opacity(0.7))
         .padding(.horizontal, 9)
@@ -185,7 +185,7 @@ struct ToastView: View {
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Theme.accent)
                     Text(toast.message)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.label)
                         .foregroundStyle(Theme.ink)
                 }
                 .padding(.horizontal, 16)
