@@ -14,24 +14,52 @@ extension View {
         }
     }
 
-    /// Smoked glass behind a floating control. Pair with white content.
+    /// Dark-tinted glass. On iOS 26+ this is the system's Liquid Glass, which
+    /// refracts whatever sits behind it; earlier versions get a painted stand-in.
+    /// `strength` is how dark the tint is. Pair with white content.
+    @ViewBuilder
+    func smokedGlass<S: Shape>(in shape: S, strength: Double = 0.55, interactive: Bool = false) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            glassEffect(.regular.tint(Color.black.opacity(strength)).interactive(interactive), in: shape)
+        } else {
+            background { FrostedGlass(shape: shape, opacity: strength + 0.15) }
+        }
+        #else
+        background { FrostedGlass(shape: shape, opacity: strength + 0.15) }
+        #endif
+    }
+
+    /// Smoked glass behind a tappable floating control.
     func glassChrome<S: Shape>(in shape: S) -> some View {
-        background { FrostedGlass(shape: shape, opacity: 0.86, blur: 20, glow: 70, shadowRadius: 12) }
+        smokedGlass(in: shape, strength: 0.6, interactive: true)
     }
 }
 
-/// Smoked glass: near-black with a soft light pooling in the top-leading
-/// corner, a thin rim that catches that light, and a deep diffuse shadow.
-/// A little of the blurred backdrop bleeds through, so it reads as glass
-/// rather than paint.
+/// Groups neighbouring glass views so the system renders them together
+/// (Liquid Glass needs this when several pieces sit close to each other).
+struct GlassGroup<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer { content }
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
+
+/// Painted stand-in for pre-iOS 26: backdrop blur under translucent charcoal,
+/// a soft corner light and a rim that catches it.
 struct FrostedGlass<S: Shape>: View {
     let shape: S
-    /// How opaque the smoke is; lower lets more of the blurred backdrop through.
-    var opacity = 0.88
-    var blur: CGFloat = 36
-    /// Reach of the corner light, in points.
-    var glow: CGFloat = 260
-    var shadowRadius: CGFloat = 26
+    var opacity = 0.7
+    var blur: CGFloat = 30
 
     var body: some View {
         BackdropBlur(radius: blur)
@@ -39,10 +67,7 @@ struct FrostedGlass<S: Shape>: View {
             .overlay {
                 shape.fill(
                     LinearGradient(
-                        colors: [
-                            Color(red: 0.2, green: 0.2, blue: 0.21).opacity(opacity),
-                            Color(red: 0.05, green: 0.05, blue: 0.06).opacity(min(1, opacity + 0.04)),
-                        ],
+                        colors: [Color(white: 0.2).opacity(opacity), Color(white: 0.05).opacity(opacity)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -50,33 +75,17 @@ struct FrostedGlass<S: Shape>: View {
             }
             .overlay {
                 shape.fill(
-                    RadialGradient(
-                        colors: [.white.opacity(0.14), .white.opacity(0)],
-                        center: .topLeading,
-                        startRadius: 0,
-                        endRadius: glow
-                    )
+                    RadialGradient(colors: [.white.opacity(0.14), .clear], center: .topLeading, startRadius: 0, endRadius: 220)
                 )
             }
             .overlay {
                 shape.stroke(
-                    LinearGradient(
-                        stops: [
-                            .init(color: .white.opacity(0.26), location: 0),
-                            .init(color: .white.opacity(0.03), location: 0.5),
-                            .init(color: .white.opacity(0.1), location: 1),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
+                    LinearGradient(colors: [.white.opacity(0.26), .white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 1
                 )
             }
             .background {
-                shape
-                    .fill(Color.black.opacity(0.3))
-                    .blur(radius: shadowRadius)
-                    .offset(y: shadowRadius * 0.55)
+                shape.fill(Color.black.opacity(0.28)).blur(radius: 20).offset(y: 10)
             }
     }
 }

@@ -36,7 +36,19 @@ struct CreateView: View {
                     .padding(.bottom, 24)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .background { DotGrid().ignoresSafeArea() }
+                .background {
+                    ZStack {
+                        DotGrid()
+                        VStack(spacing: 0) {
+                            AmbientWash(images: studio.ambientImages, edge: .top, opacity: 0.34)
+                                .frame(height: 260)
+                            Spacer(minLength: 0)
+                            AmbientWash(images: studio.ambientImages, edge: .bottom, opacity: 0.55)
+                                .frame(height: 420)
+                        }
+                    }
+                    .ignoresSafeArea()
+                }
                 .edgeBar(.top) { CreateHeader() }
                 // The composer floats ~10pt off the bottom edge (inside the
                 // home-indicator area) rather than sitting above it, and the
@@ -106,42 +118,44 @@ private struct CreateHeader: View {
     @Environment(Studio.self) private var studio
 
     var body: some View {
-        HStack(spacing: 10) {
-            AppMenuButton()
+        GlassGroup {
+            HStack(spacing: 10) {
+                AppMenuButton()
 
-            Spacer()
+                Spacer()
 
-            Button {
-                studio.showPaywall = true
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "sparkle")
-                        .font(.system(size: 11, weight: .bold))
-                    Text(verbatim: "\(studio.credits)")
-                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                        .contentTransition(.numericText(value: Double(studio.credits)))
-                        .animation(.smooth, value: studio.credits)
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .frame(height: 42)
-                .contentShape(Capsule())
-                .glassChrome(in: Capsule())
-            }
-            .buttonStyle(PressableStyle())
-            .accessibilityLabel("\(studio.credits) credits")
-
-            Menu {
-                Button("New canvas", systemImage: "square.dashed") {
-                    withAnimation(.smooth) { studio.resetCanvas() }
-                }
-                .disabled(studio.isGenerating)
-                Button("Get more credits", systemImage: "sparkle") {
+                Button {
                     studio.showPaywall = true
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "sparkle")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(verbatim: "\(studio.credits)")
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                            .contentTransition(.numericText(value: Double(studio.credits)))
+                            .animation(.smooth, value: studio.credits)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .frame(height: 42)
+                    .contentShape(Capsule())
+                    .glassChrome(in: Capsule())
                 }
-            } label: {
-                CircleIcon(systemImage: "ellipsis")
-            }
+                .buttonStyle(PressableStyle())
+                .accessibilityLabel("\(studio.credits) credits")
+
+                Menu {
+                    Button("New canvas", systemImage: "square.dashed") {
+                        withAnimation(.smooth) { studio.resetCanvas() }
+                    }
+                    .disabled(studio.isGenerating)
+                    Button("Get more credits", systemImage: "sparkle") {
+                        studio.showPaywall = true
+                    }
+                } label: {
+                    CircleIcon(systemImage: "ellipsis")
+                }
+        }
         }
         .padding(.horizontal, 16)
         .padding(.top, 4)

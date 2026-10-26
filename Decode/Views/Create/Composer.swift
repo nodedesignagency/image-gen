@@ -17,109 +17,111 @@ struct Composer: View {
         @Bindable var studio = studio
         let hasText = !studio.prompt.trimmingCharacters(in: .whitespaces).isEmpty
 
-        VStack(spacing: 10) {
-            // Suggestions step aside while a board decodes, giving it more room.
-            if !studio.isGenerating {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 8) {
-                        ForEach(studio.presets) { preset in
-                            Button {
-                                studio.prompt = preset.prompt
-                            } label: {
-                                SuggestionChip(preset: preset, isSelected: studio.prompt == preset.prompt)
+        GlassGroup {
+            VStack(spacing: 10) {
+                // Suggestions step aside while a board decodes, giving it more room.
+                if !studio.isGenerating {
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 8) {
+                            ForEach(studio.presets) { preset in
+                                Button {
+                                    studio.prompt = preset.prompt
+                                } label: {
+                                    SuggestionChip(preset: preset, isSelected: studio.prompt == preset.prompt)
+                                }
+                                .buttonStyle(PressableStyle())
                             }
-                            .buttonStyle(PressableStyle())
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                    }
+                    .scrollIndicators(.hidden)
+                    .scrollClipDisabled()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                VStack(alignment: .leading, spacing: 18) {
+                    TextField(
+                        "Imagine something",
+                        text: $studio.prompt,
+                        prompt: Text("Imagine something…").foregroundColor(.white.opacity(0.45)),
+                        axis: .vertical
+                    )
+                    .font(.system(size: 18))
+                    .foregroundStyle(.white.opacity(0.95))
+                    .tint(.white)
+                    .lineLimit(2...4)
+                    .focused($isFocused)
+                    .padding(.horizontal, 22)
+                    .padding(.top, 20)
+
+                    HStack(spacing: 10) {
+                        RoundIconButton(isOn: studio.usesMoodboard, label: studio.usesMoodboard ? "Moodboard on" : "Moodboard off") {
+                            studio.toggleMoodboard()
+                        } content: {
+                            MoodboardThumbs(isOn: studio.usesMoodboard)
+                        }
+
+                        RoundIconButton(isOn: studio.isEnhancing, label: "Enhance prompt") {
+                            studio.enhance()
+                        } content: {
+                            Image(systemName: "wand.and.stars")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.9 : 0.5))
+                                .symbolEffect(.pulse, isActive: studio.isEnhancing)
+                        }
+
+                        Menu {
+                            Picker("Images", selection: $studio.count) {
+                                ForEach([1, 2, 4], id: \.self) { value in
+                                    Text(value == 1 ? "1 image" : "\(value) images").tag(value)
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Picker("Aspect ratio", selection: $studio.ratio) {
+                                ForEach(AspectRatio.allCases) { ratio in
+                                    Label(ratio.rawValue, systemImage: ratio.symbol).tag(ratio)
+                                }
+                            }
+                            .pickerStyle(.menu)
+
+                            Picker("Style", selection: $studio.style) {
+                                ForEach(ImageStyle.allCases) { style in
+                                    Label(style.rawValue, systemImage: style.symbol).tag(style)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                        } label: {
+                            HStack(spacing: 7) {
+                                Text(verbatim: "\(studio.count) · \(studio.ratio.rawValue) · \(studio.style.rawValue)")
+                                    .font(.system(size: 15))
+                                    .lineLimit(1)
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundStyle(.white.opacity(0.88))
+                            .padding(.horizontal, 16)
+                            .frame(height: 44)
+                            .background(.white.opacity(0.04), in: Capsule())
+                            .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
+                            .contentShape(Capsule())
+                        }
+                        .accessibilityLabel("Generation settings")
+
+                        Spacer(minLength: 0)
+
+                        SendButton(isBusy: studio.isGenerating) {
+                            isFocused = false
+                            studio.generate()
                         }
                     }
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
+                    .padding(.bottom, 16)
                 }
-                .scrollIndicators(.hidden)
-                .scrollClipDisabled()
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-
-            VStack(alignment: .leading, spacing: 18) {
-                TextField(
-                    "Imagine something",
-                    text: $studio.prompt,
-                    prompt: Text("Imagine something…").foregroundColor(.white.opacity(0.45)),
-                    axis: .vertical
-                )
-                .font(.system(size: 18))
-                .foregroundStyle(.white.opacity(0.95))
-                .tint(.white)
-                .lineLimit(2...4)
-                .focused($isFocused)
-                .padding(.horizontal, 22)
-                .padding(.top, 20)
-
-                HStack(spacing: 10) {
-                    RoundIconButton(isOn: studio.usesMoodboard, label: studio.usesMoodboard ? "Moodboard on" : "Moodboard off") {
-                        studio.toggleMoodboard()
-                    } content: {
-                        MoodboardThumbs(isOn: studio.usesMoodboard)
-                    }
-
-                    RoundIconButton(isOn: studio.isEnhancing, label: "Enhance prompt") {
-                        studio.enhance()
-                    } content: {
-                        Image(systemName: "wand.and.stars")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.9 : 0.5))
-                            .symbolEffect(.pulse, isActive: studio.isEnhancing)
-                    }
-
-                    Menu {
-                        Picker("Images", selection: $studio.count) {
-                            ForEach([1, 2, 4], id: \.self) { value in
-                                Text(value == 1 ? "1 image" : "\(value) images").tag(value)
-                            }
-                        }
-                        .pickerStyle(.menu)
-
-                        Picker("Aspect ratio", selection: $studio.ratio) {
-                            ForEach(AspectRatio.allCases) { ratio in
-                                Label(ratio.rawValue, systemImage: ratio.symbol).tag(ratio)
-                            }
-                        }
-                        .pickerStyle(.menu)
-
-                        Picker("Style", selection: $studio.style) {
-                            ForEach(ImageStyle.allCases) { style in
-                                Label(style.rawValue, systemImage: style.symbol).tag(style)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                    } label: {
-                        HStack(spacing: 7) {
-                            Text(verbatim: "\(studio.count) · \(studio.ratio.rawValue) · \(studio.style.rawValue)")
-                                .font(.system(size: 15))
-                                .lineLimit(1)
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                        .foregroundStyle(.white.opacity(0.88))
-                        .padding(.horizontal, 16)
-                        .frame(height: 44)
-                        .background(.white.opacity(0.04), in: Capsule())
-                        .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
-                        .contentShape(Capsule())
-                    }
-                    .accessibilityLabel("Generation settings")
-
-                    Spacer(minLength: 0)
-
-                    SendButton(isBusy: studio.isGenerating) {
-                        isFocused = false
-                        studio.generate()
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 16)
-            }
-            .background { FrostedGlass(shape: panel) }
-            .padding(.horizontal, 10)
+                .smokedGlass(in: panel, strength: 0.62)
+                .padding(.horizontal, 10)
+        }
         }
         .animation(.smooth(duration: 0.35), value: studio.isGenerating)
     }
@@ -144,7 +146,7 @@ private struct SuggestionChip: View {
         .padding(.leading, 5)
         .padding(.trailing, 12)
         .padding(.vertical, 5)
-        .background { FrostedGlass(shape: Capsule(), opacity: 0.86, blur: 20, glow: 90, shadowRadius: 10) }
+        .smokedGlass(in: Capsule(), strength: 0.6, interactive: true)
         .overlay {
             if isSelected {
                 Capsule().stroke(.white.opacity(0.85), lineWidth: 1.5)

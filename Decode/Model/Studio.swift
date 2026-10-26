@@ -344,6 +344,13 @@ final class Studio {
 
     // MARK: Library
 
+    /// Images whose colours light the canvas edges: the newest board that has
+    /// started decoding, else the moodboard.
+    var ambientImages: [String] {
+        let board = boards.last { $0.kind == .generation && ($0.phase == .decoding || $0.phase == .done) } ?? boards.first
+        return board?.shots.map(\.imageName) ?? Preset.moodboard
+    }
+
     var generatedBoards: [Board] {
         (boards.filter { $0.kind == .generation } + history).sorted { $0.createdAt > $1.createdAt }
     }
