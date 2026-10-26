@@ -26,7 +26,9 @@ jobs:
       # Same script you run locally, so CI proves it works on a fresh Mac.
       - name: Build, boot and install (scripts/run.sh)
         run: |
-          ./scripts/run.sh --no-launch
+          # macOS's stock /bin/bash (3.2), the shell your Mac uses for this script.
+          /bin/bash --version | head -1
+          /bin/bash ./scripts/run.sh --no-launch
           UDID=$(xcrun simctl list devices booted | awk '/iPhone/ && match($0, /\([0-9A-F-]+\)/) { print substr($0, RSTART + 1, RLENGTH - 2); exit }')
           echo "UDID=$UDID" >> "$GITHUB_ENV"
           xcrun simctl ui "$UDID" appearance light

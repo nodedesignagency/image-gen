@@ -7,6 +7,8 @@
 #   ./scripts/run.sh --no-launch   build and install only
 #   SIM="iPhone 16 Pro" ./scripts/run.sh   use a specific simulator
 set -euo pipefail
+# Runs on macOS's stock bash 3.2: brace variables in strings ("${NAME}…"), since
+# 3.2 treats a following non-ASCII character as part of the variable name.
 
 cd "$(dirname "$0")/.."
 
@@ -52,7 +54,7 @@ booted_iphone() {
 
 if [[ -n "${SIM:-}" ]]; then
   UDID=$(xcrun simctl list devices available | pick_udid "$SIM")
-  [[ -n "$UDID" ]] || { echo "No simulator named \"$SIM\". See: xcrun simctl list devices available" >&2; exit 1; }
+  [[ -n "$UDID" ]] || { echo "No simulator named \"${SIM}\". See: xcrun simctl list devices available" >&2; exit 1; }
 else
   UDID=$(booted_iphone)
   [[ -n "$UDID" ]] || UDID=$(xcrun simctl list devices available | pick_udid)
@@ -84,7 +86,7 @@ if ! xcodebuild \
 fi
 codesign --force --sign - --timestamp=none "$APP" > /dev/null 2>&1
 
-echo "▸ Booting $NAME…"
+echo "▸ Booting ${NAME}…"
 xcrun simctl boot "$UDID" 2> /dev/null || true # already booted is fine
 open -a Simulator --args -CurrentDeviceUDID "$UDID" 2> /dev/null || true
 xcrun simctl bootstatus "$UDID" -b > /dev/null
@@ -99,8 +101,8 @@ if (( LAUNCH )); then
   xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2> /dev/null || true
   echo "▸ Launching…"
   xcrun simctl launch "$UDID" "$BUNDLE_ID" ${LAUNCH_ARGS[@]+"${LAUNCH_ARGS[@]}"} > /dev/null
-  echo "✓ Decode is running on $NAME."
+  echo "✓ Decode is running on ${NAME}."
   echo "  Record the screen: xcrun simctl io booted recordVideo --codec=h264 decode.mp4   (Ctrl-C to stop)"
 else
-  echo "✓ Installed on $NAME ($UDID)."
+  echo "✓ Installed on ${NAME} (${UDID})."
 fi
