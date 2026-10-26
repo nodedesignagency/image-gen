@@ -53,8 +53,8 @@ static float dsegment(float2 p, float2 a, float2 b) {
     return length(pa - ba * h);
 }
 
-static float dcoverage(float distance, float halfWidth) {
-    return 1.0f - smoothstep(halfWidth - 0.35f, halfWidth + 0.35f, distance);
+static float dcoverage(float d, float halfWidth) {
+    return 1.0f - smoothstep(halfWidth - 0.35f, halfWidth + 0.35f, d);
 }
 
 /// "0": an oval ring. `p` is relative to the glyph centre, `fs` the font size in points.
@@ -103,23 +103,23 @@ constant float3 kPlaceholder = float3(0.933f, 0.933f, 0.925f);
     float3 color = mix(kPlaceholder, float3(layer.sample(position).rgb), imageAlpha);
 
     float y = (float(row) + 0.5f) * rowStep;
-    float distance = head - y;
-    if (distance > kBand) {
+    float dist = head - y;
+    if (dist > kBand) {
         return half4(half3(color), 1.0h);   // fully decoded
     }
 
     // Each glyph flips at its own rate, faster inside the band.
     float rate = 6.0f + 14.0f * drandom(column, row, 99);
     float offset = drandom(row, column, 4) * 10.0f;
-    int tick = int(floor(time * (distance >= 0.0f ? rate * 1.6f : rate) + offset));
+    int tick = int(floor(time * (dist >= 0.0f ? rate * 1.6f : rate) + offset));
     bool isOne = (dhash(column, row, tick) & 1u) == 1u;
 
     float3 tint;
     float opacity;
     float2 centre = float2((float(column) + 0.5f) * cellW, (float(row) + 0.5f) * rowH);
-    if (distance >= 0.0f) {
-        float k = distance / kBand;
-        if (distance < rowStep) {
+    if (dist >= 0.0f) {
+        float k = dist / kBand;
+        if (dist < rowStep) {
             tint = kAccent;
             opacity = 1.0f;
         } else {
@@ -141,7 +141,7 @@ constant float3 kPlaceholder = float3(0.933f, 0.933f, 0.925f);
         float speed = 0.35f + 0.55f * drandom(column, 3, seed);
         float cycle = time * speed + drandom(column, 5, seed);
         float drop = fract(cycle) * 1.6f - 0.3f;
-        float below = -distance;
+        float below = -dist;
         float trail = drop - y;
         float boost = (trail > 0.0f && trail < 0.28f) ? 1.0f - trail / 0.28f : 0.0f;
         if (below < 0.06f) {
@@ -195,12 +195,12 @@ constant float3 kPlaceholder = float3(0.933f, 0.933f, 0.925f);
         position.y + direction * stretch * band * ease
     );
     // Directional smear along the stretch: seven taps, triangular weights.
-    float step = smear * band * ease / 3.0f;
+    float tap = smear * band * ease / 3.0f;
     half4 sum = half4(0.0h);
     float total = 0.0f;
     for (int i = -3; i <= 3; i++) {
         float weight = 4.0f - abs(float(i));
-        sum += layer.sample(source + float2(0.0f, float(i) * step)) * half(weight);
+        sum += layer.sample(source + float2(0.0f, float(i) * tap)) * half(weight);
         total += weight;
     }
     return sum / half(total);
