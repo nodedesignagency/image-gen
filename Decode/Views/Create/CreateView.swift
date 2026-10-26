@@ -19,6 +19,7 @@ struct CreateView: View {
                                 Cable(isLive: board.phase != .done)
                                     .frame(height: 64)
                                     .id(Self.cableID(board))
+                                    .zIndex(1) // plugs sit on top of the tab, not under it
                             }
                             BoardView(board: board, zoom: zoom)
                                 .id(Self.boardID(board))
@@ -35,8 +36,8 @@ struct CreateView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .background { DotGrid().ignoresSafeArea() }
-                .safeAreaInset(edge: .top, spacing: 0) { CreateHeader() }
-                .safeAreaInset(edge: .bottom, spacing: 0) { Composer() }
+                .edgeBar(.top) { CreateHeader() }
+                .edgeBar(.bottom) { Composer() }
                 // Camera follow: frame the cable as the new board links in, then
                 // glide down with the sweep so the bottom row decodes on screen.
                 // Both wait a beat so the new views exist before scrolling.
@@ -136,7 +137,6 @@ private struct CreateHeader: View {
         .padding(.horizontal, 20)
         .padding(.top, 6)
         .padding(.bottom, 10)
-        .background { CanvasFade(edge: .top) }
     }
 }
 

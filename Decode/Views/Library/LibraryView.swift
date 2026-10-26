@@ -47,7 +47,7 @@ struct LibraryView: View {
             }
             .scrollIndicators(.hidden)
             .background(Theme.canvas.ignoresSafeArea())
-            .safeAreaInset(edge: .top, spacing: 0) {
+            .edgeBar(.top) {
                 TopBar("Library") {
                     Button {
                         studio.select(.create)

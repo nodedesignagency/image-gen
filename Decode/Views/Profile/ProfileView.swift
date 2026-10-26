@@ -25,7 +25,7 @@ struct ProfileView: View {
             }
             .scrollIndicators(.hidden)
             .background(Theme.canvas.ignoresSafeArea())
-            .safeAreaInset(edge: .top, spacing: 0) {
+            .edgeBar(.top) {
                 TopBar("Profile") {
                     CircleIcon(systemImage: "gearshape")
                 }

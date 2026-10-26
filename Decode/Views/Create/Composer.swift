@@ -107,7 +107,6 @@ struct Composer: View {
         .padding(.top, 14)
         .padding(.bottom, 8)
         .animation(.smooth(duration: 0.35), value: studio.isGenerating)
-        .background { CanvasFade(edge: .bottom) }
     }
 }
 

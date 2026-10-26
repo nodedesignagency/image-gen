@@ -26,7 +26,7 @@ struct LogoMark: View {
     }
 }
 
-/// Large screen title with optional trailing controls, fading into the canvas below.
+/// Large screen title with optional trailing controls. Pin it with `.edgeBar(.top)`.
 struct TopBar<Trailing: View>: View {
     let title: String
     let trailing: Trailing
@@ -48,31 +48,12 @@ struct TopBar<Trailing: View>: View {
         .padding(.horizontal, 20)
         .padding(.top, 6)
         .padding(.bottom, 12)
-        .background { CanvasFade(edge: .top) }
     }
 }
 
 extension TopBar where Trailing == EmptyView {
     init(_ title: String) {
         self.init(title) { EmptyView() }
-    }
-}
-
-/// Solid canvas colour that fades out toward the content, for pinned bars.
-struct CanvasFade: View {
-    var edge: VerticalEdge
-
-    var body: some View {
-        LinearGradient(
-            stops: [
-                .init(color: Theme.canvas, location: 0),
-                .init(color: Theme.canvas, location: 0.72),
-                .init(color: Theme.canvas.opacity(0), location: 1),
-            ],
-            startPoint: edge == .top ? .top : .bottom,
-            endPoint: edge == .top ? .bottom : .top
-        )
-        .ignoresSafeArea()
     }
 }
 

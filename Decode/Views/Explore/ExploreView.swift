@@ -30,7 +30,7 @@ struct ExploreView: View {
             }
             .scrollIndicators(.hidden)
             .background(Theme.canvas.ignoresSafeArea())
-            .safeAreaInset(edge: .top, spacing: 0) {
+            .edgeBar(.top) {
                 TopBar("Explore") {
                     CircleIcon(systemImage: "magnifyingglass")
                 }
