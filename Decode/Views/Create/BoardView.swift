@@ -184,7 +184,7 @@ private struct BoardFooter: View {
         case .done:
             let seconds = String(format: "%.1f", board.elapsed ?? 0)
             let noun = board.shots.count == 1 ? "image" : "images"
-            return "\(board.shots.count) \(noun) · \(board.ratio.rawValue) · \(board.style.rawValue.lowercased()) · \(seconds)s"
+            return "\(board.shots.count) \(noun) · \(board.model.slug) · \(board.ratio.rawValue) · \(board.style.rawValue.lowercased()) · \(seconds)s"
         }
     }
 }

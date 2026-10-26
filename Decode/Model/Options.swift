@@ -77,6 +77,34 @@ extension View {
     }
 }
 
+/// Pretend model picker. Cost is credits per image.
+enum GenModel: String, CaseIterable, Identifiable {
+    case standard = "Decode 2"
+    case pro = "Decode 2 Pro"
+    case lite = "Decode Lite"
+
+    var id: String { rawValue }
+
+    /// Lower-case id used wherever metadata is shown in mono.
+    var slug: String {
+        switch self {
+        case .standard: "decode-2"
+        case .pro: "decode-2-pro"
+        case .lite: "decode-lite"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .standard: "Balanced"
+        case .pro: "Highest fidelity · 2 credits"
+        case .lite: "Fastest"
+        }
+    }
+
+    var cost: Int { self == .pro ? 2 : 1 }
+}
+
 enum DecodeSpeed: String, CaseIterable, Identifiable {
     case relaxed = "Relaxed"
     case normal = "Normal"
@@ -101,6 +129,7 @@ enum SettingsKey {
     static let revealFeed = "revealFeed"
     static let hasOnboarded = "hasOnboarded"
     static let autopilot = "autopilot"
+    static let edgeLens = "edgeLens"
 
     static var speed: DecodeSpeed {
         DecodeSpeed(rawValue: UserDefaults.standard.string(forKey: decodeSpeed) ?? "") ?? .normal
@@ -108,6 +137,10 @@ enum SettingsKey {
 
     static var revealsFeed: Bool {
         UserDefaults.standard.object(forKey: revealFeed) as? Bool ?? true
+    }
+
+    static var edgeLensEnabled: Bool {
+        UserDefaults.standard.object(forKey: edgeLens) as? Bool ?? true
     }
 }
 
@@ -120,6 +153,7 @@ struct ShotRoute: Hashable {
     let seed: Int
     var ratio: AspectRatio = .portrait
     var style: ImageStyle = .natural
+    var model: GenModel = .standard
     var author: String? = nil
     var likes: Int? = nil
 }

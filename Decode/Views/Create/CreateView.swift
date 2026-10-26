@@ -6,7 +6,10 @@ struct CreateView: View {
     @Environment(Studio.self) private var studio
     @AppStorage(SettingsKey.haptics) private var haptics = true
     @Namespace private var zoom
+    @AppStorage(SettingsKey.edgeLens) private var edgeLens = true
     @State private var composerHeight: CGFloat = 200
+    /// Status bar + header: the zone the edge lens and top blur cover.
+    @State private var topInset: CGFloat = 110
 
     var body: some View {
         @Bindable var studio = studio
@@ -35,17 +38,18 @@ struct CreateView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
+                .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { topInset = $0 }
+                // Content bends toward the top edge as it passes under the header.
+                .distortionEffect(
+                    ShaderLibrary.edgeLens(.float(topInset + 12), .float(34)),
+                    maxSampleOffset: CGSize(width: 0, height: 34),
+                    isEnabled: edgeLens
+                )
                 .scrollDismissesKeyboard(.interactively)
                 .background {
                     ZStack {
                         DotGrid()
-                        VStack(spacing: 0) {
-                            AmbientWash(images: studio.ambientImages, edge: .top, opacity: 0.34)
-                                .frame(height: 260)
-                            Spacer(minLength: 0)
-                            AmbientWash(images: studio.ambientImages, edge: .bottom, opacity: 0.55)
-                                .frame(height: 420)
-                        }
+                        AmbientWash(images: studio.ambientImages, opacity: 0.5)
                     }
                     .ignoresSafeArea()
                 }

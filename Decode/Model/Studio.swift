@@ -28,6 +28,7 @@ final class Board: Identifiable {
     let prompt: String
     let ratio: AspectRatio
     let style: ImageStyle
+    let model: GenModel
     let usedMoodboard: Bool
     let createdAt: Date
     var shots: [Shot]
@@ -39,8 +40,9 @@ final class Board: Identifiable {
         title: String,
         prompt: String,
         images: [String],
-        ratio: AspectRatio = .portrait,
+        ratio: AspectRatio = .square,
         style: ImageStyle = .natural,
+        model: GenModel = .standard,
         usedMoodboard: Bool = true,
         phase: Phase,
         createdAt: Date = .now,
@@ -51,6 +53,7 @@ final class Board: Identifiable {
         self.prompt = prompt
         self.ratio = ratio
         self.style = style
+        self.model = model
         self.usedMoodboard = usedMoodboard
         self.phase = phase
         self.createdAt = createdAt
@@ -70,7 +73,8 @@ final class Board: Identifiable {
             prompt: prompt.isEmpty ? "Reference image from your moodboard." : prompt,
             seed: shot.seed,
             ratio: ratio,
-            style: style
+            style: style,
+            model: model
         )
     }
 }
@@ -106,8 +110,11 @@ final class Studio {
     private(set) var history: [Board] = []
     var prompt = ""
     var style: ImageStyle = .natural
+    var model: GenModel = .standard
     var count = 4
-    var ratio: AspectRatio = .portrait
+    /// Square only: the 2×2 then fits above the composer, so a recording
+    /// catches every cell decoding.
+    var ratio: AspectRatio = .square
     private(set) var usesMoodboard = true
     private(set) var isGenerating = false
     private(set) var isEnhancing = false
@@ -175,7 +182,8 @@ final class Studio {
 
     func generate() {
         guard !isGenerating else { return }
-        guard credits >= count else {
+        let cost = count * model.cost
+        guard credits >= cost else {
             showPaywall = true
             return
         }
@@ -193,13 +201,14 @@ final class Studio {
             images: Array(preset.images.prefix(count)),
             ratio: ratio,
             style: style,
+            model: model,
             usedMoodboard: usesMoodboard,
             phase: .linking
         )
 
         isGenerating = true
         prompt = ""
-        credits = max(0, credits - board.shots.count)
+        credits = max(0, credits - cost)
         withAnimation(.smooth(duration: 0.4)) {
             boards.append(board)
         }
@@ -289,7 +298,7 @@ final class Studio {
     func remix(_ route: ShotRoute) {
         prompt = route.prompt
         style = route.style
-        ratio = route.ratio
+        model = route.model
         createPath = []
         explorePath = []
         libraryPath = []
@@ -398,7 +407,7 @@ final class Studio {
     private static func seedHistory() -> [Board] {
         let day: TimeInterval = 86_400
         let now = Date.now
-        func board(_ id: String, _ count: Int, _ ratio: AspectRatio, _ style: ImageStyle, ago: TimeInterval) -> Board? {
+        func board(_ id: String, _ count: Int, _ ratio: AspectRatio, _ style: ImageStyle, _ model: GenModel = .standard, ago: TimeInterval) -> Board? {
             guard let preset = Preset.all.first(where: { $0.id == id }) else { return nil }
             return Board(
                 kind: .generation,
@@ -407,6 +416,7 @@ final class Studio {
                 images: Array(preset.images.prefix(count)),
                 ratio: ratio,
                 style: style,
+                model: model,
                 phase: .done,
                 createdAt: now.addingTimeInterval(-ago),
                 elapsed: 4.2
@@ -415,7 +425,7 @@ final class Studio {
         return [
             board("mist", 4, .portrait, .natural, ago: day * 1 + 3_600),
             board("golden", 2, .square, .warm, ago: day * 1 + 7_200),
-            board("stilllife", 4, .portrait, .cinematic, ago: day * 3),
+            board("stilllife", 4, .portrait, .cinematic, .pro, ago: day * 3),
             board("concrete", 4, .story, .mono, ago: day * 4),
         ].compactMap { $0 }
     }

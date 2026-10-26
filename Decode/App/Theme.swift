@@ -14,6 +14,18 @@ enum Theme {
     static let cardPadding: CGFloat = 8
 }
 
+/// Type pairing: SF for anything a person wrote or reads as prose, SF Mono
+/// for machine values (counts, ratios, model ids, timers, bits).
+extension Font {
+    static func mono(_ size: CGFloat, _ weight: Font.Weight = .medium) -> Font {
+        .system(size: size, weight: weight, design: .monospaced)
+    }
+
+    static func sans(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        .system(size: size, weight: weight)
+    }
+}
+
 extension View {
     /// Soft two-layer lift used for every white surface on the canvas.
     func cardShadow() -> some View {

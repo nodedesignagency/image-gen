@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Bottom prompt panel in smoked glass, laid out like the reference: a roomy
-/// prompt on top, then one row of round icon buttons, a single settings pill
-/// and a light send button. Suggestions float above it.
+/// Bottom prompt panel in smoked glass: a roomy prompt on top, then a row of
+/// round icon buttons and mono pills (model, style) that scrolls if it must,
+/// and a light send button pinned right. Suggestions float above it.
+/// Output is always 1:1 so the 2×2 fits above the panel in recordings.
 struct Composer: View {
     @Environment(Studio.self) private var studio
     @FocusState private var isFocused: Bool
@@ -56,67 +57,57 @@ struct Composer: View {
                     .padding(.top, 20)
 
                     HStack(spacing: 10) {
-                        RoundIconButton(isOn: studio.usesMoodboard, label: studio.usesMoodboard ? "Moodboard on" : "Moodboard off") {
-                            studio.toggleMoodboard()
-                        } content: {
-                            MoodboardThumbs(isOn: studio.usesMoodboard)
-                        }
-
-                        RoundIconButton(isOn: studio.isEnhancing, label: "Enhance prompt") {
-                            studio.enhance()
-                        } content: {
-                            Image(systemName: "wand.and.stars")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.9 : 0.5))
-                                .symbolEffect(.pulse, isActive: studio.isEnhancing)
-                        }
-
-                        Menu {
-                            Picker("Images", selection: $studio.count) {
-                                ForEach([1, 2, 4], id: \.self) { value in
-                                    Text(value == 1 ? "1 image" : "\(value) images").tag(value)
+                        ScrollView(.horizontal) {
+                            HStack(spacing: 8) {
+                                RoundIconButton(isOn: studio.usesMoodboard, label: studio.usesMoodboard ? "Moodboard on" : "Moodboard off") {
+                                    studio.toggleMoodboard()
+                                } content: {
+                                    MoodboardThumbs(isOn: studio.usesMoodboard)
                                 }
-                            }
-                            .pickerStyle(.menu)
 
-                            Picker("Aspect ratio", selection: $studio.ratio) {
-                                ForEach(AspectRatio.allCases) { ratio in
-                                    Label(ratio.rawValue, systemImage: ratio.symbol).tag(ratio)
+                                RoundIconButton(isOn: studio.isEnhancing, label: "Enhance prompt") {
+                                    studio.enhance()
+                                } content: {
+                                    Image(systemName: "wand.and.stars")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.9 : 0.5))
+                                        .symbolEffect(.pulse, isActive: studio.isEnhancing)
                                 }
-                            }
-                            .pickerStyle(.menu)
 
-                            Picker("Style", selection: $studio.style) {
-                                ForEach(ImageStyle.allCases) { style in
-                                    Label(style.rawValue, systemImage: style.symbol).tag(style)
+                                Menu {
+                                    Picker("Model", selection: $studio.model) {
+                                        ForEach(GenModel.allCases) { model in
+                                            Text(model.rawValue).tag(model)
+                                        }
+                                    }
+                                } label: {
+                                    MonoPill(systemImage: "cpu", text: studio.model.slug)
                                 }
+                                .accessibilityLabel("Model: \(studio.model.rawValue)")
+
+                                Menu {
+                                    Picker("Style", selection: $studio.style) {
+                                        ForEach(ImageStyle.allCases) { style in
+                                            Label(style.rawValue, systemImage: style.symbol).tag(style)
+                                        }
+                                    }
+                                } label: {
+                                    MonoPill(systemImage: studio.style.symbol, text: studio.style.rawValue.lowercased())
+                                }
+                                .accessibilityLabel("Style: \(studio.style.rawValue)")
                             }
-                            .pickerStyle(.menu)
-                        } label: {
-                            HStack(spacing: 7) {
-                                Text(verbatim: "\(studio.count) · \(studio.ratio.rawValue) · \(studio.style.rawValue)")
-                                    .font(.system(size: 15))
-                                    .lineLimit(1)
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 12, weight: .semibold))
-                            }
-                            .foregroundStyle(.white.opacity(0.88))
-                            .padding(.horizontal, 16)
-                            .frame(height: 44)
-                            .background(.white.opacity(0.04), in: Capsule())
-                            .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
-                            .contentShape(Capsule())
+                            .padding(.leading, 14)
+                            .padding(.trailing, 6)
                         }
-                        .accessibilityLabel("Generation settings")
-
-                        Spacer(minLength: 0)
+                        .scrollIndicators(.hidden)
+                        .scrollClipDisabled()
 
                         SendButton(isBusy: studio.isGenerating) {
                             isFocused = false
                             studio.generate()
                         }
+                        .padding(.trailing, 14)
                     }
-                    .padding(.horizontal, 14)
                     .padding(.bottom, 16)
                 }
                 .smokedGlass(in: panel, strength: 0.62)
@@ -153,6 +144,31 @@ private struct SuggestionChip: View {
             }
         }
         .animation(.smooth(duration: 0.2), value: isSelected)
+    }
+}
+
+/// Outlined capsule with a mono value and a chevron, for pickers.
+private struct MonoPill: View {
+    let systemImage: String
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .medium))
+            Text(verbatim: text)
+                .font(.mono(13))
+                .lineLimit(1)
+            Image(systemName: "chevron.down")
+                .font(.system(size: 10, weight: .semibold))
+                .opacity(0.7)
+        }
+        .foregroundStyle(.white.opacity(0.9))
+        .padding(.horizontal, 14)
+        .frame(height: 44)
+        .background(.white.opacity(0.04), in: Capsule())
+        .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
+        .contentShape(Capsule())
     }
 }
 

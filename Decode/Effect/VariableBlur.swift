@@ -57,6 +57,7 @@ private struct VariableBlurRepresentable: UIViewRepresentable {
 
 final class VariableBlurView: UIVisualEffectView {
     static let isAvailable = makeFilter() != nil
+    private var filter: NSObject?
 
     init(edge: VerticalEdge, radius: CGFloat, uniform: Bool = false) {
         super.init(effect: UIBlurEffect(style: .regular))
@@ -65,12 +66,32 @@ final class VariableBlurView: UIVisualEffectView {
         filter.setValue(radius, forKey: "inputRadius")
         filter.setValue(mask, forKey: "inputMaskImage")
         filter.setValue(true, forKey: "inputNormalizeEdges")
-        // First subview hosts the backdrop; the rest add the material's tint.
-        subviews.first?.layer.filters = [filter]
-        for view in subviews.dropFirst() {
+        self.filter = filter
+        applyFilter()
+    }
+
+    /// The first subview hosts the backdrop; the rest add the material's tint.
+    /// UIVisualEffectView re-installs its own filters (blur + a saturation
+    /// boost) whenever it lays out, which made colour behind the bar pop
+    /// against the unboosted canvas below it, so put ours back every time.
+    private func applyFilter() {
+        guard let filter, let backdrop = subviews.first?.layer else { return }
+        if backdrop.filters?.count != 1 || (backdrop.filters?.first as? NSObject) !== filter {
+            backdrop.filters = [filter]
+        }
+        for view in subviews.dropFirst() where view.alpha != 0 {
             view.alpha = 0
         }
     }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        applyFilter()
+    }
+
+    // The superclass rebuilds its effect here, which would drop our filter
+    // (and can crash with a private one), so swallow the change.
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {}
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {

@@ -56,7 +56,7 @@ struct ShotDetailView: View {
 
                 ScrollView(.horizontal) {
                     HStack(spacing: 6) {
-                        MetaChip(systemImage: "cpu", text: "decode-2")
+                        MetaChip(systemImage: "cpu", text: route.model.slug)
                         MetaChip(systemImage: route.ratio.symbol, text: route.ratio.rawValue)
                         MetaChip(systemImage: route.style.symbol, text: route.style.rawValue.lowercased())
                         MetaChip(systemImage: "number", text: "\(route.seed * 7919 % 99_991)")

@@ -5,6 +5,7 @@ struct ProfileView: View {
     @AppStorage(SettingsKey.haptics) private var haptics = true
     @AppStorage(SettingsKey.decodeSpeed) private var speed: DecodeSpeed = .normal
     @AppStorage(SettingsKey.revealFeed) private var revealFeed = true
+    @AppStorage(SettingsKey.edgeLens) private var edgeLens = true
 
     var body: some View {
         NavigationStack {
@@ -137,6 +138,14 @@ struct ProfileView: View {
 
             Toggle(isOn: $revealFeed) {
                 SettingRow(systemImage: "square.grid.3x3.middle.filled", title: "Decode Explore tiles")
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            Divider().padding(.leading, 52)
+
+            Toggle(isOn: $edgeLens) {
+                SettingRow(systemImage: "camera.filters", title: "Edge lens on the canvas")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)

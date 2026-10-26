@@ -15,8 +15,8 @@ already read the image while it's still made of digits), and the real pixels fad
 | **Splash** | Logo mark spins in, the wordmark types itself through flickering bits. |
 | **Onboarding** | Three pages; each picture decodes as its page comes into view. Skippable. |
 | **Create** | Dotted canvas of white "folder" boards. The first is your moodboard. Each generation cables in from the previous board, its title scrambles in, and the images decode one after another with a light haptic each. |
-| **Composer** | Smoked-glass panel: a roomy prompt, then round buttons for the moodboard link and **Enhance** (types extra style words into your prompt), one settings pill (image count, aspect ratio, style) and a light send button. Suggestion chips float above it. |
-| **Navigation** | The tab bar is hidden so recordings show only the canvas. The ☰ glass button (top left) switches between Create, Explore, Library and Profile, and has New canvas and Play demo. Content blurs progressively under the top bar and composer. |
+| **Composer** | Smoked-glass panel: a roomy prompt, then round buttons for the moodboard link and **Enhance** (types extra style words into your prompt), mono pills for the model (Decode 2 / Decode 2 Pro, which costs 2 credits / Decode Lite) and the style, and a light send button. Output is always four 1:1 images so the whole 2×2 decodes on screen. Suggestion chips float above it. |
+| **Navigation** | The tab bar is hidden so recordings show only the canvas. The ☰ glass button (top left) switches between Create, Explore, Library and Profile, and has New canvas and Play demo. Content blurs progressively under the top bar and bends toward the edge as it slides under it (the *edge lens*, a Metal distortion you can switch off in Profile). Soft lights in the colours of the latest generation drift behind the canvas edges so the glass has something to refract. |
 | **Detail** | Zooms in from the tile (iOS 18 zoom transition). **Re-decode** replays the sweep full size, **Upscale 2×** replays it with finer bits and badges the result. Remix, Vary, Share, Save, Favourite, and long-press the prompt to copy it. |
 | **Explore** | Community feed in a two-column masonry, filter chips, made-up creators and like counts. Tiles decode in the first time they appear. |
 | **Library** | Everything you've generated, grouped by day, with an All / Favourites switch. |
@@ -100,6 +100,8 @@ The reveal is drawn in `Decode/Effect/DecodingImage.swift`, and the numbers that
 | `jitter` | How wavy the front is |
 | `columnWidth`, `rowHeight`, `fontSize` | Glyph size and density |
 | `duration` (in `Studio.run`) | Sweep length per image: 2.4s, scaled by the decode-speed setting |
+| `opacity` on `AmbientWash` in `CreateView` | Strength of the colour lights behind the canvas |
+| `edgeLens(band, strength)` in `CreateView` | Reach and pull of the top-edge distortion |
 
 Colours live in `Decode/App/Theme.swift`.
 
@@ -109,7 +111,7 @@ Colours live in `Decode/App/Theme.swift`.
 Decode/
   App/        entry point, root (splash, onboarding, tabs), theme
   Model/      Studio (state + fake generation timeline), presets, feed, autopilot
-  Effect/     the binary reveal: math, colour sampling, renderer
+  Effect/     the binary reveal (math, colour sampling, renderer), blur, ambient lights, Metal shader
   Views/      Create, Explore, Library, Profile, Onboarding, Detail, shared components
   Assets.xcassets/
 ```

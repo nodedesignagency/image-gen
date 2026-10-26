@@ -34,20 +34,20 @@ enum Autopilot {
         studio.createPath = []
         studio.select(.create)
         studio.count = 4
-        studio.ratio = .portrait
+        studio.ratio = .square
         studio.style = .natural
+        studio.model = .standard
         studio.resetCanvas()
         await pause(1.0)
 
-        // Take 1: a typed prompt, four portrait images.
+        // Take 1: a typed prompt on the default model.
         await studio.type("neon towers at night, shot looking straight up")
         await pause(0.5)
         studio.generate()
         await pause(5.4)
 
-        // Take 2: enhance a short prompt, two square images in a different style.
-        studio.count = 2
-        studio.ratio = .square
+        // Take 2: enhance a short prompt, Pro model, cinematic style.
+        studio.model = .pro
         studio.style = .cinematic
         await pause(0.6)
         await studio.type("quiet ocean, glowing jellyfish")
@@ -82,8 +82,9 @@ enum Autopilot {
         await pause(2.6)
         studio.select(.create)
         studio.count = 4
-        studio.ratio = .portrait
+        studio.ratio = .square
         studio.style = .natural
+        studio.model = .standard
     }
 
     private static func pause(_ seconds: Double) async {
