@@ -14,20 +14,24 @@ extension View {
         }
     }
 
-    /// Dark glass behind a floating control. Pair with white content.
+    /// Smoked glass behind a floating control. Pair with white content.
     func glassChrome<S: Shape>(in shape: S) -> some View {
-        background { FrostedGlass(shape: shape, opacity: 0.8, blur: 18) }
+        background { FrostedGlass(shape: shape, opacity: 0.86, blur: 20, glow: 70, shadowRadius: 12) }
     }
 }
 
-/// Dark smoked glass: an even blur of whatever is behind under a charcoal
-/// gradient (lighter top-leading, near black bottom-trailing), a faint top
-/// sheen, a thin rim that catches light along the top, and a soft shadow.
+/// Smoked glass: near-black with a soft light pooling in the top-leading
+/// corner, a thin rim that catches that light, and a deep diffuse shadow.
+/// A little of the blurred backdrop bleeds through, so it reads as glass
+/// rather than paint.
 struct FrostedGlass<S: Shape>: View {
     let shape: S
-    /// How much of the charcoal covers the blur; lower lets more show through.
-    var opacity = 0.84
-    var blur: CGFloat = 30
+    /// How opaque the smoke is; lower lets more of the blurred backdrop through.
+    var opacity = 0.88
+    var blur: CGFloat = 36
+    /// Reach of the corner light, in points.
+    var glow: CGFloat = 260
+    var shadowRadius: CGFloat = 26
 
     var body: some View {
         BackdropBlur(radius: blur)
@@ -35,7 +39,10 @@ struct FrostedGlass<S: Shape>: View {
             .overlay {
                 shape.fill(
                     LinearGradient(
-                        colors: [Color(white: 0.24).opacity(opacity), Color(white: 0.05).opacity(opacity)],
+                        colors: [
+                            Color(red: 0.2, green: 0.2, blue: 0.21).opacity(opacity),
+                            Color(red: 0.05, green: 0.05, blue: 0.06).opacity(min(1, opacity + 0.04)),
+                        ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -43,13 +50,11 @@ struct FrostedGlass<S: Shape>: View {
             }
             .overlay {
                 shape.fill(
-                    LinearGradient(
-                        stops: [
-                            .init(color: .white.opacity(0.09), location: 0),
-                            .init(color: .white.opacity(0), location: 0.5),
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
+                    RadialGradient(
+                        colors: [.white.opacity(0.14), .white.opacity(0)],
+                        center: .topLeading,
+                        startRadius: 0,
+                        endRadius: glow
                     )
                 )
             }
@@ -57,21 +62,21 @@ struct FrostedGlass<S: Shape>: View {
                 shape.stroke(
                     LinearGradient(
                         stops: [
-                            .init(color: .white.opacity(0.2), location: 0),
-                            .init(color: .white.opacity(0.04), location: 0.4),
-                            .init(color: .white.opacity(0.07), location: 1),
+                            .init(color: .white.opacity(0.26), location: 0),
+                            .init(color: .white.opacity(0.03), location: 0.5),
+                            .init(color: .white.opacity(0.1), location: 1),
                         ],
-                        startPoint: .top,
-                        endPoint: .bottom
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     ),
                     lineWidth: 1
                 )
             }
             .background {
                 shape
-                    .fill(Color.black.opacity(0.22))
-                    .blur(radius: 20)
-                    .offset(y: 12)
+                    .fill(Color.black.opacity(0.3))
+                    .blur(radius: shadowRadius)
+                    .offset(y: shadowRadius * 0.55)
             }
     }
 }

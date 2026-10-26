@@ -15,7 +15,7 @@ already read the image while it's still made of digits), and the real pixels fad
 | **Splash** | Logo mark spins in, the wordmark types itself through flickering bits. |
 | **Onboarding** | Three pages; each picture decodes as its page comes into view. Skippable. |
 | **Create** | Dotted canvas of white "folder" boards. The first is your moodboard. Each generation cables in from the previous board, its title scrambles in, and the images decode one after another with a light haptic each. |
-| **Composer** | Dark frosted-glass panel: prompt, moodboard toggle, working menus for image count (1/2/4), style and aspect ratio (3:4, 1:1, 9:16), **Enhance** (types extra style words into your prompt), the credit cost and send. Suggestion chips float above it. |
+| **Composer** | Smoked-glass panel: a roomy prompt, then round buttons for the moodboard link and **Enhance** (types extra style words into your prompt), one settings pill (image count, aspect ratio, style) and a light send button. Suggestion chips float above it. |
 | **Navigation** | The tab bar is hidden so recordings show only the canvas. The ☰ glass button (top left) switches between Create, Explore, Library and Profile, and has New canvas and Play demo. Content blurs progressively under the top bar and composer. |
 | **Detail** | Zooms in from the tile (iOS 18 zoom transition). **Re-decode** replays the sweep full size, **Upscale 2×** replays it with finer bits and badges the result. Remix, Vary, Share, Save, Favourite, and long-press the prompt to copy it. |
 | **Explore** | Community feed in a two-column masonry, filter chips, made-up creators and like counts. Tiles decode in the first time they appear. |

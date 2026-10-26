@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Bottom prompt panel in frosted glass: prompt on top, a row of setting
-/// chips, then enhance, cost and the send button. Suggestions float above it.
+/// Bottom prompt panel in smoked glass, laid out like the reference: a roomy
+/// prompt on top, then one row of round icon buttons, a single settings pill
+/// and a light send button. Suggestions float above it.
 struct Composer: View {
     @Environment(Studio.self) private var studio
     @FocusState private var isFocused: Bool
@@ -31,117 +32,90 @@ struct Composer: View {
                         }
                     }
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 6)
                 }
                 .scrollIndicators(.hidden)
                 .scrollClipDisabled()
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 18) {
                 TextField(
                     "Imagine something",
                     text: $studio.prompt,
-                    prompt: Text("Imagine something…").foregroundColor(.white.opacity(0.6)),
+                    prompt: Text("Imagine something…").foregroundColor(.white.opacity(0.45)),
                     axis: .vertical
                 )
-                .font(.system(size: 17))
-                .foregroundStyle(.white)
+                .font(.system(size: 18))
+                .foregroundStyle(.white.opacity(0.95))
                 .tint(.white)
-                .lineLimit(1...4)
+                .lineLimit(2...4)
                 .focused($isFocused)
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
-                .padding(.bottom, 15)
+                .padding(.horizontal, 22)
+                .padding(.top, 20)
 
-                Rectangle()
-                    .fill(.white.opacity(0.06))
-                    .frame(height: 1)
-
-                ScrollView(.horizontal) {
-                    HStack(spacing: 4) {
-                        MoodboardChip(isOn: studio.usesMoodboard) {
-                            studio.toggleMoodboard()
-                        }
-
-                        Menu {
-                            Picker("Images", selection: $studio.count) {
-                                ForEach([1, 2, 4], id: \.self) { value in
-                                    Text(value == 1 ? "1 image" : "\(value) images").tag(value)
-                                }
-                            }
-                        } label: {
-                            GlassChip(systemImage: "square.on.square", text: studio.count == 1 ? "1 image" : "\(studio.count) images")
-                        }
-
-                        Menu {
-                            Picker("Style", selection: $studio.style) {
-                                ForEach(ImageStyle.allCases) { style in
-                                    Label(style.rawValue, systemImage: style.symbol).tag(style)
-                                }
-                            }
-                        } label: {
-                            GlassChip(systemImage: studio.style.symbol, text: studio.style.rawValue)
-                        }
-
-                        Menu {
-                            Picker("Aspect ratio", selection: $studio.ratio) {
-                                ForEach(AspectRatio.allCases) { ratio in
-                                    Label(ratio.rawValue, systemImage: ratio.symbol).tag(ratio)
-                                }
-                            }
-                        } label: {
-                            GlassChip(systemImage: studio.ratio.symbol, text: studio.ratio.rawValue)
-                        }
+                HStack(spacing: 10) {
+                    RoundIconButton(isOn: studio.usesMoodboard, label: studio.usesMoodboard ? "Moodboard on" : "Moodboard off") {
+                        studio.toggleMoodboard()
+                    } content: {
+                        MoodboardThumbs(isOn: studio.usesMoodboard)
                     }
-                    .padding(.horizontal, 12)
-                }
-                .scrollIndicators(.hidden)
-                .padding(.top, 10)
 
-                HStack(spacing: 8) {
-                    Button {
+                    RoundIconButton(isOn: studio.isEnhancing, label: "Enhance prompt") {
                         studio.enhance()
+                    } content: {
+                        Image(systemName: "wand.and.stars")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.9 : 0.5))
+                            .symbolEffect(.pulse, isActive: studio.isEnhancing)
+                    }
+
+                    Menu {
+                        Picker("Images", selection: $studio.count) {
+                            ForEach([1, 2, 4], id: \.self) { value in
+                                Text(value == 1 ? "1 image" : "\(value) images").tag(value)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Picker("Aspect ratio", selection: $studio.ratio) {
+                            ForEach(AspectRatio.allCases) { ratio in
+                                Label(ratio.rawValue, systemImage: ratio.symbol).tag(ratio)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Picker("Style", selection: $studio.style) {
+                            ForEach(ImageStyle.allCases) { style in
+                                Label(style.rawValue, systemImage: style.symbol).tag(style)
+                            }
+                        }
+                        .pickerStyle(.menu)
                     } label: {
                         HStack(spacing: 7) {
-                            Image(systemName: "wand.and.stars")
-                                .symbolEffect(.pulse, isActive: studio.isEnhancing)
-                            Text("Enhance")
+                            Text(verbatim: "\(studio.count) · \(studio.ratio.rawValue) · \(studio.style.rawValue)")
+                                .font(.system(size: 15))
+                                .lineLimit(1)
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 12, weight: .semibold))
                         }
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.85 : 0.5))
-                        .padding(.horizontal, 8)
+                        .foregroundStyle(.white.opacity(0.88))
+                        .padding(.horizontal, 16)
                         .frame(height: 44)
-                        .contentShape(Rectangle())
+                        .background(.white.opacity(0.04), in: Capsule())
+                        .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
+                        .contentShape(Capsule())
                     }
-                    .buttonStyle(PressableStyle())
-                    .accessibilityLabel("Enhance prompt")
+                    .accessibilityLabel("Generation settings")
 
                     Spacer(minLength: 0)
 
-                    HStack(spacing: 5) {
-                        Image(systemName: "sparkle")
-                            .font(.system(size: 12, weight: .bold))
-                        Text(verbatim: "\(studio.count)")
-                            .font(.system(size: 15, weight: .semibold, design: .monospaced))
-                            .contentTransition(.numericText(value: Double(studio.count)))
-                    }
-                    .foregroundStyle(.white.opacity(0.9))
-                    .padding(.horizontal, 14)
-                    .frame(height: 38)
-                    .background(.white.opacity(0.06), in: Capsule())
-                    .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
-                    .animation(.smooth, value: studio.count)
-                    .accessibilityLabel("Costs \(studio.count) credits")
-
-                    GenerateButton(isBusy: studio.isGenerating) {
+                    SendButton(isBusy: studio.isGenerating) {
                         isFocused = false
                         studio.generate()
                     }
                 }
-                .padding(.leading, 12)
-                .padding(.trailing, 14)
-                .padding(.top, 8)
+                .padding(.horizontal, 14)
                 .padding(.bottom, 16)
             }
             .background { FrostedGlass(shape: panel) }
@@ -151,7 +125,7 @@ struct Composer: View {
     }
 }
 
-/// Frosted capsule used for suggestions above the panel.
+/// Small smoked-glass capsule used for suggestions above the panel.
 private struct SuggestionChip: View {
     let preset: Preset
     let isSelected: Bool
@@ -161,119 +135,107 @@ private struct SuggestionChip: View {
             Image(preset.images[0])
                 .resizable()
                 .scaledToFill()
-                .frame(width: 24, height: 24)
+                .frame(width: 22, height: 22)
                 .clipShape(Circle())
             Text(preset.title)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.white)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.92))
         }
         .padding(.leading, 5)
-        .padding(.trailing, 13)
+        .padding(.trailing, 12)
         .padding(.vertical, 5)
-        .background { FrostedGlass(shape: Capsule(), opacity: 0.82, blur: 18) }
+        .background { FrostedGlass(shape: Capsule(), opacity: 0.86, blur: 20, glow: 90, shadowRadius: 10) }
         .overlay {
             if isSelected {
-                Capsule().stroke(.white.opacity(0.9), lineWidth: 1.5)
+                Capsule().stroke(.white.opacity(0.85), lineWidth: 1.5)
             }
         }
         .animation(.smooth(duration: 0.2), value: isSelected)
     }
 }
 
-/// Soft translucent capsule inside the panel.
-private struct GlassChip: View {
-    let systemImage: String
-    let text: String
-
-    var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .medium))
-            Text(text)
-                .font(.system(size: 15))
-                .lineLimit(1)
-        }
-        .foregroundStyle(.white.opacity(0.88))
-        .padding(.horizontal, 14)
-        .frame(height: 40)
-        .background(.white.opacity(0.05), in: Capsule())
-        .overlay { Capsule().stroke(.white.opacity(0.14), lineWidth: 1) }
-    }
-}
-
-/// Tiny 2×2 of the moodboard references; brighter when linked.
-private struct MoodboardChip: View {
+/// 44pt round button with a faint fill and hairline, brighter when on.
+private struct RoundIconButton<Content: View>: View {
     let isOn: Bool
+    let label: String
     let action: () -> Void
+    @ViewBuilder let content: Content
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
-                Grid(horizontalSpacing: 1.5, verticalSpacing: 1.5) {
-                    GridRow {
-                        thumb(Preset.moodboard[0])
-                        thumb(Preset.moodboard[1])
-                    }
-                    GridRow {
-                        thumb(Preset.moodboard[2])
-                        thumb(Preset.moodboard[3])
-                    }
-                }
-                .saturation(isOn ? 1 : 0)
-                .opacity(isOn ? 1 : 0.55)
-
-                Text("Moodboard")
-                    .font(.system(size: 15))
-                    .foregroundStyle(.white.opacity(isOn ? 0.92 : 0.55))
-            }
-            .padding(.leading, 9)
-            .padding(.trailing, 14)
-            .frame(height: 40)
-            .background(.white.opacity(isOn ? 0.12 : 0.04), in: Capsule())
-            .overlay { Capsule().stroke(.white.opacity(isOn ? 0.26 : 0.1), lineWidth: 1) }
-            .animation(.smooth(duration: 0.2), value: isOn)
+            content
+                .frame(width: 44, height: 44)
+                .background(.white.opacity(isOn ? 0.13 : 0.07), in: Circle())
+                .overlay { Circle().stroke(.white.opacity(isOn ? 0.24 : 0.1), lineWidth: 1) }
+                .contentShape(Circle())
+                .animation(.smooth(duration: 0.2), value: isOn)
         }
         .buttonStyle(PressableStyle())
-        .accessibilityLabel(isOn ? "Moodboard on" : "Moodboard off")
+        .accessibilityLabel(label)
+    }
+}
+
+/// 2×2 of the moodboard references, greyed out when unlinked.
+private struct MoodboardThumbs: View {
+    let isOn: Bool
+
+    var body: some View {
+        Grid(horizontalSpacing: 1.5, verticalSpacing: 1.5) {
+            GridRow {
+                thumb(Preset.moodboard[0])
+                thumb(Preset.moodboard[1])
+            }
+            GridRow {
+                thumb(Preset.moodboard[2])
+                thumb(Preset.moodboard[3])
+            }
+        }
+        .saturation(isOn ? 1 : 0)
+        .opacity(isOn ? 1 : 0.5)
     }
 
     private func thumb(_ name: String) -> some View {
         Image(name)
             .resizable()
             .scaledToFill()
-            .frame(width: 11, height: 11)
+            .frame(width: 10, height: 10)
             .clipShape(RoundedRectangle(cornerRadius: 2.5, style: .continuous))
     }
 }
 
-/// Accent-blue circular send button. While busy it shows a rolling binary readout.
-private struct GenerateButton: View {
+/// Soft light send button with a dark arrow. While busy it shows a rolling binary readout.
+private struct SendButton: View {
     let isBusy: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             ZStack {
-                Circle().fill(Theme.accent)
-                Circle().fill(
-                    LinearGradient(colors: [.white.opacity(0.22), .white.opacity(0)], startPoint: .top, endPoint: .center)
-                )
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(white: 0.98), Color(white: 0.78)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                Circle().stroke(.white.opacity(0.6), lineWidth: 1)
                 if isBusy {
                     TimelineView(.periodic(from: .now, by: 0.08)) { timeline in
                         Text(verbatim: bits(at: timeline.date))
                             .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color(white: 0.2))
                     }
                     .transition(.scale.combined(with: .opacity))
                 } else {
                     Image(systemName: "arrow.up")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(.white)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Color(white: 0.25))
                         .transition(.scale.combined(with: .opacity))
                 }
             }
             .frame(width: 44, height: 44)
-            .shadow(color: Theme.accent.opacity(0.3), radius: 8, y: 3)
+            .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
             .animation(.spring(duration: 0.3, bounce: 0.3), value: isBusy)
         }
         .buttonStyle(PressableStyle())
