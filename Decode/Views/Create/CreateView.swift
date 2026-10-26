@@ -9,14 +9,20 @@ struct CreateView: View {
     @AppStorage(SettingsKey.edgeLens) private var edgeLens = true
     @AppStorage(SettingsKey.reduceEffects) private var reduceEffects = false
     @State private var composerHeight: CGFloat = 200
-    /// Status bar + header: the zone the edge lens and top blur cover.
+    /// Status bar + header: the zone the top blur covers.
     @State private var topInset: CGFloat = 110
+    @State private var scrollHeight: CGFloat = 874
 
     var body: some View {
         @Bindable var studio = studio
-        // The edge lens bends boards and cables alike, per view, so only the
-        // ones under the header are ever run through the shader.
-        let lensBand = topInset + 12
+        // Thick-glass edges: boards are magnified as they slide under the
+        // header and under the composer. The bands reach well past the bars,
+        // as in the reference, so the bend is visible before the blur takes over.
+        let lens = EdgeLensBands(
+            top: topInset + 70,
+            bottomStart: scrollHeight - composerHeight - 10 - 50,
+            bottom: composerHeight + 60
+        )
         let lensOn = edgeLens && !reduceEffects
 
         NavigationStack(path: $studio.createPath) {
@@ -28,12 +34,11 @@ struct CreateView: View {
                             if index > 0 {
                                 Cable(isLive: board.phase != .done)
                                     .frame(height: 64)
-                                    .edgeLens(band: lensBand, isEnabled: lensOn)
                                     .id(Self.cableID(board))
                                     .zIndex(1) // plugs sit on top of the tab, not under it
                             }
                             BoardView(board: board, zoom: zoom)
-                                .edgeLens(band: lensBand, isEnabled: lensOn)
+                                .edgeLens(lens, isEnabled: lensOn)
                                 .id(Self.boardID(board))
                         }
 
@@ -47,6 +52,7 @@ struct CreateView: View {
                     .padding(.bottom, 24)
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { topInset = $0 }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { scrollHeight = $0 }
                 .scrollDismissesKeyboard(.interactively)
                 .background {
                     ZStack {

@@ -161,37 +161,46 @@ private struct ShotCell: View {
     }
 }
 
+/// The prompt, then the generation's settings as chips once it's done.
+/// While it runs, a single live chip tracks progress.
 private struct BoardFooter: View {
     let board: Board
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(board.prompt)
                 .font(.supporting)
                 .foregroundStyle(Theme.ink.opacity(0.75))
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(verbatim: status)
-                .font(.monoMeta)
-                .foregroundStyle(board.phase == .done ? Theme.secondary : Theme.accent)
-                .contentTransition(.numericText())
-                .animation(.smooth, value: status)
+            ChipFlow {
+                if board.phase == .done {
+                    MetaChip(systemImage: "cpu", text: board.model.slug)
+                    MetaChip(systemImage: board.ratio.symbol, text: board.ratio.rawValue)
+                    MetaChip(systemImage: board.style.symbol, text: board.style.rawValue.lowercased())
+                    MetaChip(systemImage: "timer", text: String(format: "%.1fs", board.elapsed ?? 0))
+                } else {
+                    MetaChip(systemImage: nil, text: status, tone: .live)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .animation(.smooth(duration: 0.3), value: board.phase)
+            .animation(.smooth, value: board.decodedCount)
         }
         .padding(.horizontal, 6)
+        .padding(.top, 2)
         .padding(.bottom, 4)
     }
 
     private var status: String {
         switch board.phase {
         case .linking, .framing:
-            return board.usedMoodboard ? "reading moodboard…" : "composing…"
+            board.usedMoodboard ? "reading moodboard…" : "composing…"
         case .decoding:
-            return "decoding \(board.decodedCount) of \(board.shots.count)"
+            "decoding \(board.decodedCount)/\(board.shots.count)"
         case .done:
-            let seconds = String(format: "%.1f", board.elapsed ?? 0)
-            let noun = board.shots.count == 1 ? "image" : "images"
-            return "\(board.shots.count) \(noun) · \(board.model.slug) · \(board.ratio.rawValue) · \(board.style.rawValue.lowercased()) · \(seconds)s"
+            ""
         }
     }
 }
