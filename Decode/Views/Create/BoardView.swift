@@ -4,6 +4,9 @@ import SwiftUI
 struct BoardView: View {
     let board: Board
     let zoom: Namespace.ID
+    /// Screen y where the header's blur band ends; the lens pulls content above it.
+    var lensBand: CGFloat = 0
+    var lensEnabled = false
 
     var body: some View {
         let isHidden = board.phase == .linking
@@ -36,6 +39,17 @@ struct BoardView: View {
         .cardShadow()
         .opacity(isHidden ? 0 : 1)
         .scaleEffect(isHidden ? 0.94 : 1, anchor: .top)
+        // Edge lens: content stretches toward the top edge as the board slides
+        // under the header blur. Per board, and only while this board actually
+        // reaches the band, so nothing else is rasterised for it.
+        .visualEffect { [lensBand, lensEnabled] content, proxy in
+            let band = lensBand - proxy.frame(in: .scrollView).minY
+            return content.distortionEffect(
+                ShaderLibrary.edgeLens(.float(band), .float(34)),
+                maxSampleOffset: CGSize(width: 0, height: 34),
+                isEnabled: lensEnabled && band > 0
+            )
+        }
     }
 }
 

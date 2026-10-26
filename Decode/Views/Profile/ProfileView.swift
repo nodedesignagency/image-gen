@@ -6,6 +6,7 @@ struct ProfileView: View {
     @AppStorage(SettingsKey.decodeSpeed) private var speed: DecodeSpeed = .normal
     @AppStorage(SettingsKey.revealFeed) private var revealFeed = true
     @AppStorage(SettingsKey.edgeLens) private var edgeLens = true
+    @AppStorage(SettingsKey.reduceEffects) private var reduceEffects = false
 
     var body: some View {
         NavigationStack {
@@ -146,6 +147,20 @@ struct ProfileView: View {
 
             Toggle(isOn: $edgeLens) {
                 SettingRow(systemImage: "camera.filters", title: "Edge lens on the canvas")
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            Divider().padding(.leading, 52)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle(isOn: $reduceEffects) {
+                    SettingRow(systemImage: "bolt", title: "Reduce effects")
+                }
+                Text("Flat glass, no blur, no lights. Use it if the simulator stutters while recording.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.secondary)
+                    .padding(.leading, 36)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)

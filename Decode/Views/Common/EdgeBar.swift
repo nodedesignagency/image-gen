@@ -3,13 +3,24 @@ import SwiftUI
 extension View {
     /// Pins `bar` to the top or bottom edge over a progressive blur that runs
     /// from the screen edge through the bar and eases out just past it.
-    func edgeBar<Bar: View>(_ edge: VerticalEdge, fade: CGFloat = 10, @ViewBuilder bar: () -> Bar) -> some View {
+    /// With `lite`, a plain canvas fade stands in for the blur (no backdrop sampling).
+    func edgeBar<Bar: View>(_ edge: VerticalEdge, fade: CGFloat = 10, lite: Bool = false, @ViewBuilder bar: () -> Bar) -> some View {
         safeAreaInset(edge: edge, spacing: 0) {
             bar()
                 .background {
-                    VariableBlur(edge: edge, radius: 18)
-                        .padding(edge == .top ? .bottom : .top, -fade)
+                    if lite {
+                        LinearGradient(
+                            colors: [Theme.canvas, Theme.canvas, Theme.canvas.opacity(0)],
+                            startPoint: edge == .top ? .top : .bottom,
+                            endPoint: edge == .top ? .bottom : .top
+                        )
+                        .padding(edge == .top ? .bottom : .top, -fade * 3)
                         .ignoresSafeArea()
+                    } else {
+                        VariableBlur(edge: edge, radius: 18)
+                            .padding(edge == .top ? .bottom : .top, -fade)
+                            .ignoresSafeArea()
+                    }
                 }
         }
     }
@@ -17,10 +28,16 @@ extension View {
     /// Dark-tinted glass. On iOS 26+ this is the system's Liquid Glass, which
     /// refracts whatever sits behind it; earlier versions get a painted stand-in.
     /// `strength` is how dark the tint is. Pair with white content.
+    /// `lite` paints a translucent dark fill instead, which costs nothing per frame.
     @ViewBuilder
-    func smokedGlass<S: Shape>(in shape: S, strength: Double = 0.55, interactive: Bool = false) -> some View {
+    func smokedGlass<S: Shape>(in shape: S, strength: Double = 0.55, interactive: Bool = false, lite: Bool = false) -> some View {
         #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
+        if lite {
+            background {
+                shape.fill(Color(white: 0.1).opacity(0.84))
+                    .overlay { shape.stroke(.white.opacity(0.14), lineWidth: 1) }
+            }
+        } else if #available(iOS 26.0, *) {
             glassEffect(.regular.tint(Color.black.opacity(strength)).interactive(interactive), in: shape)
         } else {
             background { FrostedGlass(shape: shape, opacity: strength + 0.15) }
@@ -31,8 +48,8 @@ extension View {
     }
 
     /// Smoked glass behind a tappable floating control.
-    func glassChrome<S: Shape>(in shape: S) -> some View {
-        smokedGlass(in: shape, strength: 0.6, interactive: true)
+    func glassChrome<S: Shape>(in shape: S, lite: Bool = false) -> some View {
+        smokedGlass(in: shape, strength: 0.6, interactive: true, lite: lite)
     }
 }
 

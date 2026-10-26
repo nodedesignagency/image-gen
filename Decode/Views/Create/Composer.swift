@@ -7,6 +7,7 @@ import SwiftUI
 struct Composer: View {
     @Environment(Studio.self) private var studio
     @FocusState private var isFocused: Bool
+    @AppStorage(SettingsKey.reduceEffects) private var reduceEffects = false
 
     /// Bottom corners follow the screen's curve when the panel sits ~10pt from the edge.
     private let panel = UnevenRoundedRectangle(
@@ -117,7 +118,7 @@ struct Composer: View {
                     }
                     .padding(.bottom, 16)
                 }
-                .smokedGlass(in: panel, strength: 0.62)
+                .smokedGlass(in: panel, strength: 0.62, lite: reduceEffects)
                 .padding(.horizontal, 10)
         }
         }

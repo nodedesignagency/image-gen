@@ -63,6 +63,7 @@ extension TopBar where Trailing == EmptyView {
 struct CircleIcon: View {
     let systemImage: String
     var size: CGFloat = 42
+    @AppStorage(SettingsKey.reduceEffects) private var reduceEffects = false
 
     var body: some View {
         Image(systemName: systemImage)
@@ -70,7 +71,7 @@ struct CircleIcon: View {
             .foregroundStyle(.white)
             .frame(width: size, height: size)
             .contentShape(Circle())
-            .glassChrome(in: Circle())
+            .glassChrome(in: Circle(), lite: reduceEffects)
     }
 }
 

@@ -130,6 +130,7 @@ enum SettingsKey {
     static let hasOnboarded = "hasOnboarded"
     static let autopilot = "autopilot"
     static let edgeLens = "edgeLens"
+    static let reduceEffects = "reduceEffects"
 
     static var speed: DecodeSpeed {
         DecodeSpeed(rawValue: UserDefaults.standard.string(forKey: decodeSpeed) ?? "") ?? .normal
