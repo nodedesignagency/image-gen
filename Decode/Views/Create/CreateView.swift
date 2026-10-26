@@ -71,11 +71,11 @@ struct CreateView: View {
                     CreateHeader()
                         .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { headerBottom = $0 }
                 }
-                // Room for the last board to scroll clear of the composer. A
-                // content margin, not safe-area padding: padding derived from
-                // the composer's own height fed back into its position and
-                // lifted it by that height on first appearance.
-                .contentMargins(.bottom, max(0, composerHeight - 18), for: .scrollContent)
+                // Room for the last board, chips included, to scroll clear of
+                // the composer. A content margin, not safe-area padding: padding
+                // derived from the composer's own height fed back into its
+                // position and lifted it by that height on first appearance.
+                .contentMargins(.bottom, composerHeight + 6, for: .scrollContent)
                 // Camera follow: frame the cable as the new board links in, then
                 // glide down with the sweep so the bottom row decodes on screen.
                 // Both wait a beat so the new views exist before scrolling.
