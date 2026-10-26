@@ -26,10 +26,31 @@ Generating costs one credit per image, the same as a real app would charge. **Ne
 
 ## Run it
 
-1. Open `Decode.xcodeproj` in Xcode 16 or later (Xcode 26 recommended).
-2. Select the **Decode** target, go to *Signing & Capabilities*, and pick your team.
-   Change the bundle identifier if Xcode asks you to.
-3. Run on an iPhone or simulator with iOS 18+.
+You need a Mac with Xcode 16 or later (Xcode 26 recommended) and an iOS 18+ simulator.
+
+**First time** (clone, then build and launch in the simulator):
+
+```sh
+git clone https://github.com/nodedesignagency/image-gen.git ~/image-gen && cd ~/image-gen && git checkout claude/affectionate-galileo-lrgc2w && ./scripts/run.sh
+```
+
+**After that** (pull the latest and run):
+
+```sh
+cd ~/image-gen && git fetch origin && git checkout claude/affectionate-galileo-lrgc2w && git pull && ./scripts/run.sh
+```
+
+`scripts/run.sh` builds the app, boots a simulator (reusing one that's already open, otherwise the
+newest iPhone Pro), installs and launches. Options:
+
+| Command | Does |
+| --- | --- |
+| `./scripts/run.sh --demo` | Launch straight into the hands-free demo |
+| `./scripts/run.sh --fresh` | Reinstall from scratch, so onboarding shows again |
+| `SIM="iPhone 16 Pro" ./scripts/run.sh` | Use a specific simulator |
+
+To run from Xcode instead, open `Decode.xcodeproj`, pick a simulator and press ⌘R. For a physical
+iPhone, choose your team under *Signing & Capabilities* first.
 
 The project uses a synced folder, so any file you add inside `Decode/` is picked up automatically.
 
