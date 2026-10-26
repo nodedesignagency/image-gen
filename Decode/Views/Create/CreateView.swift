@@ -45,7 +45,7 @@ struct CreateView: View {
                 .background {
                     ZStack {
                         DotGrid()
-                        if !reduceEffects {
+                        if !reduceEffects && !UserDefaults.standard.bool(forKey: "perfNoWash") {
                             AmbientWash(images: studio.ambientImages, opacity: 0.42)
                         }
                     }

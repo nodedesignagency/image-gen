@@ -8,7 +8,7 @@ extension View {
         safeAreaInset(edge: edge, spacing: 0) {
             bar()
                 .background {
-                    if lite {
+                    if lite || UserDefaults.standard.bool(forKey: "perfNoBlur") {
                         LinearGradient(
                             colors: [Theme.canvas, Theme.canvas, Theme.canvas.opacity(0)],
                             startPoint: edge == .top ? .top : .bottom,
@@ -32,7 +32,7 @@ extension View {
     @ViewBuilder
     func smokedGlass<S: Shape>(in shape: S, strength: Double = 0.55, interactive: Bool = false, lite: Bool = false) -> some View {
         #if compiler(>=6.2)
-        if lite {
+        if lite || UserDefaults.standard.bool(forKey: "perfNoGlass") {
             background {
                 shape.fill(Color(white: 0.1).opacity(0.84))
                     .overlay { shape.stroke(.white.opacity(0.14), lineWidth: 1) }
