@@ -11,7 +11,8 @@ struct CreateView: View {
     @State private var composerHeight: CGFloat = 200
     /// Status bar + header: the zone the top blur covers.
     @State private var topInset: CGFloat = 110
-    @State private var scrollHeight: CGFloat = 874
+    /// The canvas's frame in the window; it spans the whole screen.
+    @State private var canvasFrame = CGRect(x: 0, y: 0, width: 402, height: 874)
 
     var body: some View {
         @Bindable var studio = studio
@@ -19,8 +20,8 @@ struct CreateView: View {
         // header and under the composer. The bands reach well past the bars,
         // as in the reference, so the bend is visible before the blur takes over.
         let lens = EdgeLensBands(
-            top: topInset + 70,
-            bottomStart: scrollHeight - composerHeight - 10 - 50,
+            top: canvasFrame.minY + topInset + 70,
+            bottomStart: canvasFrame.maxY - composerHeight - 10 - 50,
             bottom: composerHeight + 60
         )
         let lensOn = edgeLens && !reduceEffects
@@ -52,7 +53,7 @@ struct CreateView: View {
                     .padding(.bottom, 24)
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { topInset = $0 }
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { scrollHeight = $0 }
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { canvasFrame = $0 }
                 .scrollDismissesKeyboard(.interactively)
                 .background {
                     ZStack {

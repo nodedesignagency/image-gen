@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// Where the canvas's thick-glass edges sit, in the scroll view's coordinates.
+/// Where the canvas's thick-glass edges sit, in window coordinates (the
+/// `.scrollView` space starts under the header inset, not at the screen top).
 /// Zero bands switch that edge off.
 struct EdgeLensBands: Equatable {
-    /// Screen y where the top band ends (below the header blur).
+    /// Window y where the top band ends (below the header blur).
     var top: CGFloat = 0
-    /// Screen y where the bottom band starts (above the composer).
+    /// Window y where the bottom band starts (above the composer).
     var bottomStart: CGFloat = .infinity
     /// Height of the bottom band, down to the screen's bottom edge.
     var bottom: CGFloat = 0
@@ -24,7 +25,7 @@ extension View {
         let smear: CGFloat = 0.08
         let reach = max(bands.top, bands.bottom) * (stretch + smear)
         return visualEffect { content, proxy in
-            let frame = proxy.frame(in: .scrollView)
+            let frame = proxy.frame(in: .global)
             let reaches = frame.minY < bands.top || frame.maxY > bands.bottomStart
             let centerX = proxy.size.width / 2
             return content.layerEffect(
