@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 
 /// The Create tab: a dotted canvas of boards, each new generation cabled to
@@ -9,11 +10,11 @@ struct CreateView: View {
     @AppStorage(SettingsKey.edgeLens) private var edgeLens = true
     @AppStorage(SettingsKey.reduceEffects) private var reduceEffects = false
     @State private var composerHeight: CGFloat = 200
+    // Edges for the lens, all measured in the same (.global) space as the
+    // boards measure themselves, so it doesn't matter where its origin is.
+    @State private var headerBottom: CGFloat = 110
     @State private var panelTop: CGFloat = 700
-    /// Status bar + header: the zone the top blur covers.
-    @State private var topInset: CGFloat = 110
-    /// The canvas's frame in the window; it spans the whole screen.
-    @State private var canvasFrame = CGRect(x: 0, y: 0, width: 402, height: 874)
+    @State private var canvasBottom: CGFloat = 874
 
     var body: some View {
         @Bindable var studio = studio
@@ -23,9 +24,9 @@ struct CreateView: View {
         // blur takes over; the bottom one starts just above the panel, since
         // anything higher would warp a board between the suggestion chips.
         let lens = EdgeLensBands(
-            top: canvasFrame.minY + topInset + 70,
+            top: headerBottom + 70,
             bottomStart: panelTop - 24,
-            bottom: max(1, canvasFrame.maxY - panelTop + 24)
+            bottom: max(1, canvasBottom - panelTop + 24)
         )
         let lensOn = edgeLens && !reduceEffects
 
@@ -55,8 +56,7 @@ struct CreateView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
-                .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { topInset = $0 }
-                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { canvasFrame = $0 }
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { canvasBottom = $0 }
                 .scrollDismissesKeyboard(.interactively)
                 .background {
                     ZStack {
@@ -67,7 +67,10 @@ struct CreateView: View {
                     }
                     .ignoresSafeArea()
                 }
-                .edgeBar(.top, lite: reduceEffects) { CreateHeader() }
+                .edgeBar(.top, lite: reduceEffects) {
+                    CreateHeader()
+                        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { headerBottom = $0 }
+                }
                 // Room for the last board to scroll clear of the composer. A
                 // content margin, not safe-area padding: padding derived from
                 // the composer's own height fed back into its position and
@@ -113,6 +116,9 @@ struct CreateView: View {
                     .navigationTransition(.zoom(sourceID: route.id, in: zoom))
             }
         }
+        .onChange(of: lens, initial: true) { _, bands in
+            Self.log.log("edge lens: top \(bands.top, format: .fixed(precision: 0)) bottomStart \(bands.bottomStart, format: .fixed(precision: 0)) bottom \(bands.bottom, format: .fixed(precision: 0))")
+        }
         .sensoryFeedback(trigger: studio.boards.count) { _, _ in
             haptics ? .impact(weight: .medium) : nil
         }
@@ -125,6 +131,8 @@ struct CreateView: View {
 // Scroll targets need ids distinct from the ForEach row identity (board.id):
 // scrolling to the row id lands on its first child, the cable.
 extension CreateView {
+    static let log = Logger(subsystem: "com.nodedesign.decode", category: "canvas")
+
     static func cableID(_ board: Board) -> String {
         "cable-\(board.id.uuidString)"
     }
