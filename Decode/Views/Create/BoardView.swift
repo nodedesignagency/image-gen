@@ -4,6 +4,7 @@ import SwiftUI
 struct BoardView: View {
     let board: Board
     let zoom: Namespace.ID
+    @State private var tabSize = CGSize(width: 96, height: 32)
 
     var body: some View {
         let isHidden = board.phase == .linking
@@ -14,6 +15,7 @@ struct BoardView: View {
 
         VStack(alignment: .leading, spacing: 0) {
             BoardTab(board: board)
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { tabSize = $0 }
 
             VStack(alignment: .leading, spacing: 12) {
                 LazyVGrid(columns: columns, spacing: Theme.cardPadding) {
@@ -32,8 +34,13 @@ struct BoardView: View {
             .padding(Theme.cardPadding)
             .background(Theme.card, in: BoardCardShape())
         }
-        .compositingGroup()
-        .cardShadow()
+        // The shadow comes from a plain outline behind the card, so decoding
+        // cells don't drag the whole board through a shadow pass every frame.
+        .background(alignment: .topLeading) {
+            FolderShape(tabSize: tabSize)
+                .fill(Theme.card)
+                .cardShadow()
+        }
         .opacity(isHidden ? 0 : 1)
         .scaleEffect(isHidden ? 0.94 : 1, anchor: .top)
     }

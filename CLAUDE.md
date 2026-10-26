@@ -39,6 +39,12 @@ in behind). See README.md for the feature tour.
 - Performance matters to the user ("feels heavy"). Avoid anything that re-blurs or re-rasterises
   large areas every frame. Decode/cable timelines run at 30 fps. Profile has a **Reduce effects**
   switch that turns glass, blur, lights and lens into flat fills.
+- Shadows go on still shapes *behind* live content (`FolderShape` behind boards, a filled shape
+  behind decoding images), never on the content itself, or the whole view is re-rendered and
+  re-blurred on every decode frame.
+- The CI simulator can't measure performance: identical screens vary 2× in frame rate between
+  runs, and an A/B with every effect off showed no consistent difference. Judge "heavy" on the
+  user's Mac.
 
 ## Design decisions the user has made
 
@@ -54,20 +60,22 @@ in behind). See README.md for the feature tour.
 - **Tab bar hidden.** The ☰ glass button (top left) is the navigation (Create / Explore / Library /
   Profile, New canvas, Play demo). No logo in the Create header.
 - Short progressive blur under the top bar only (status bar + header).
-- **Edge lens** (on by default): boards stretch toward the top edge as they slide under the header
-  blur, per board, via `Effect/Shaders.metal`. User asked for this after a reference video where
-  cards bend at the screen edges while scrolling.
-- Typography: SF for prose, SF Mono (`Font.mono`) for machine values (counts, model ids, timers,
-  bits). `Font.mono` / `Font.sans` exist in `App/Theme.swift`.
+- **Edge lens** (on by default): boards and cables stretch toward the top edge and their sides
+  draw in as they slide under the header blur (`View.edgeLens` in `Effect/EdgeLens.swift`, shader
+  in `Effect/Shaders.metal`). Applied per view but computed in screen space, so neighbours bend
+  together; stretch stays under a third of the band so it never folds. User asked for this after
+  a reference video where cards bend at the screen edges while scrolling.
+- Typography: SF for prose, SF Mono for machine values (counts, model ids, seeds, prices, timers,
+  bits). Use the named scale in `App/Theme.swift` (`.display`, `.screenTitle`, `.heading`,
+  `.prose`, `.button`, `.label`, `.chip`, `.supporting`, `.note`, `.micro`; `.monoStat`,
+  `.monoValue`, `.monoMeta`, `.monoBadge`); `Font.mono(_:)` / `Font.sans(_:)` only for one-offs
+  like the wordmark.
 
 ## Open items
 
-- User still reported the app as "heavy" before the last round of perf work (static lights,
-  per-board lens, 30 fps decode). Unconfirmed whether it's fixed. Ask for a short Mac recording if
-  they report it again.
-- Typography pass across the app (apply `Font.mono` to chips/metadata consistently, review sizes
-  and weights) was requested and is only partly done.
-- The edge lens may need tuning toward the reference (stronger bend, or also at the bottom edge).
+- "Heavy" is still unconfirmed on the user's Mac (CI can't tell). Latest fix: shadows moved off
+  live content. Ask for a short Mac recording if they report it again.
+- Edge lens: possibly also at the bottom edge (behind the composer); ask before adding.
 
 ## Layout
 

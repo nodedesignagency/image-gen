@@ -113,8 +113,11 @@ private struct OnboardingPageView: View {
                 }
                 .clipShape(shape)
                 .padding(8)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 36, style: .continuous))
-                .cardShadow()
+                .background {
+                    RoundedRectangle(cornerRadius: 36, style: .continuous)
+                        .fill(Theme.card)
+                        .cardShadow()
+                }
                 .frame(maxWidth: .infinity)
 
             VStack(alignment: .leading, spacing: 8) {

@@ -86,7 +86,7 @@ struct PaywallView: View {
                     .background(Theme.accent, in: Capsule())
                     .padding(14)
             }
-            .cardShadow()
+            .background { shape.fill(Theme.placeholder).cardShadow() }
             .padding(.top, 28)
     }
 

@@ -171,7 +171,7 @@ struct ShotDetailView: View {
                 }
             }
             .animation(.spring(duration: 0.4, bounce: 0.4), value: isUpscaled)
-            .cardShadow()
+            .background { shape.fill(Theme.placeholder).cardShadow() }
     }
 
     private func play(density: CGFloat, duration: Double) {

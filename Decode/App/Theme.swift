@@ -62,6 +62,9 @@ extension Font {
 
 extension View {
     /// Soft two-layer lift used for every white surface on the canvas.
+    /// Put it on a still shape behind live content, never on the content: a
+    /// shadow re-renders and re-blurs whatever it's attached to on every frame
+    /// that content changes, which during a decode is every frame.
     func cardShadow() -> some View {
         shadow(color: .black.opacity(0.04), radius: 1, y: 1)
             .shadow(color: .black.opacity(0.07), radius: 18, y: 10)
