@@ -59,7 +59,7 @@ extension TopBar where Trailing == EmptyView {
     }
 }
 
-/// Round glass icon used for top-bar controls.
+/// Round frosted-glass icon used for top-bar controls.
 struct CircleIcon: View {
     let systemImage: String
     var size: CGFloat = 42
@@ -67,7 +67,7 @@ struct CircleIcon: View {
     var body: some View {
         Image(systemName: systemImage)
             .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(Theme.ink)
+            .foregroundStyle(.white)
             .frame(width: size, height: size)
             .contentShape(Circle())
             .glassChrome(in: Circle())

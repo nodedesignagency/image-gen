@@ -24,12 +24,32 @@ struct VariableBlur: View {
     }
 }
 
+/// Even, untinted blur of whatever is behind: the base of `FrostedGlass`.
+struct BackdropBlur: View {
+    var radius: CGFloat = 24
+
+    var body: some View {
+        Group {
+            if VariableBlurView.isAvailable {
+                VariableBlurRepresentable(edge: .top, radius: radius, uniform: true)
+            } else {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .environment(\.colorScheme, .dark)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 private struct VariableBlurRepresentable: UIViewRepresentable {
     let edge: VerticalEdge
     let radius: CGFloat
+    var uniform = false
 
     func makeUIView(context: Context) -> VariableBlurView {
-        VariableBlurView(edge: edge, radius: radius)
+        VariableBlurView(edge: edge, radius: radius, uniform: uniform)
     }
 
     func updateUIView(_ view: VariableBlurView, context: Context) {}
@@ -38,10 +58,10 @@ private struct VariableBlurRepresentable: UIViewRepresentable {
 final class VariableBlurView: UIVisualEffectView {
     static let isAvailable = makeFilter() != nil
 
-    init(edge: VerticalEdge, radius: CGFloat) {
+    init(edge: VerticalEdge, radius: CGFloat, uniform: Bool = false) {
         super.init(effect: UIBlurEffect(style: .regular))
         isUserInteractionEnabled = false
-        guard let filter = Self.makeFilter(), let mask = Self.mask(edge: edge) else { return }
+        guard let filter = Self.makeFilter(), let mask = Self.mask(edge: edge, uniform: uniform) else { return }
         filter.setValue(radius, forKey: "inputRadius")
         filter.setValue(mask, forKey: "inputMaskImage")
         filter.setValue(true, forKey: "inputNormalizeEdges")
@@ -70,12 +90,18 @@ final class VariableBlurView: UIVisualEffectView {
             .takeUnretainedValue() as? NSObject
     }
 
-    /// Opaque (full blur) at the edge, clear (no blur) at the far side.
-    private static func mask(edge: VerticalEdge) -> CGImage? {
+    /// Opaque (full blur) at the edge, clear (no blur) at the far side, or
+    /// opaque throughout for an even blur.
+    private static func mask(edge: VerticalEdge, uniform: Bool) -> CGImage? {
         let size = CGSize(width: 100, height: 100)
         let image = UIGraphicsImageRenderer(size: size).image { context in
-            let colors = [UIColor.black.cgColor, UIColor.black.withAlphaComponent(0.55).cgColor, UIColor.clear.cgColor] as CFArray
-            guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 0.45, 1]) else { return }
+            if uniform {
+                UIColor.black.setFill()
+                context.fill(CGRect(origin: .zero, size: size))
+                return
+            }
+            let colors = [UIColor.black.cgColor, UIColor.black.withAlphaComponent(0.6).cgColor, UIColor.clear.cgColor] as CFArray
+            guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 0.35, 1]) else { return }
             let top = CGPoint(x: 0, y: 0)
             let bottom = CGPoint(x: 0, y: size.height)
             context.cgContext.drawLinearGradient(

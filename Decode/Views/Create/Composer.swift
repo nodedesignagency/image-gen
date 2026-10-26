@@ -1,15 +1,20 @@
 import SwiftUI
 
-/// Bottom prompt panel in dark frosted glass: prompt on top, a row of setting
+/// Bottom prompt panel in frosted glass: prompt on top, a row of setting
 /// chips, then enhance, cost and the send button. Suggestions float above it.
 struct Composer: View {
     @Environment(Studio.self) private var studio
     @FocusState private var isFocused: Bool
 
+    /// Bottom corners follow the screen's curve when the panel sits ~10pt from the edge.
+    private let panel = UnevenRoundedRectangle(
+        cornerRadii: RectangleCornerRadii(topLeading: 30, bottomLeading: 44, bottomTrailing: 44, topTrailing: 30),
+        style: .continuous
+    )
+
     var body: some View {
         @Bindable var studio = studio
         let hasText = !studio.prompt.trimmingCharacters(in: .whitespaces).isEmpty
-        let panel = RoundedRectangle(cornerRadius: 28, style: .continuous)
 
         VStack(spacing: 10) {
             // Suggestions step aside while a board decodes, giving it more room.
@@ -25,7 +30,8 @@ struct Composer: View {
                             .buttonStyle(PressableStyle())
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 4)
                 }
                 .scrollIndicators(.hidden)
                 .scrollClipDisabled()
@@ -36,7 +42,7 @@ struct Composer: View {
                 TextField(
                     "Imagine something",
                     text: $studio.prompt,
-                    prompt: Text("Imagine something…").foregroundColor(.white.opacity(0.42)),
+                    prompt: Text("Imagine something…").foregroundColor(.white.opacity(0.55)),
                     axis: .vertical
                 )
                 .font(.system(size: 17))
@@ -44,16 +50,16 @@ struct Composer: View {
                 .tint(.white)
                 .lineLimit(1...4)
                 .focused($isFocused)
-                .padding(.horizontal, 18)
-                .padding(.top, 16)
-                .padding(.bottom, 14)
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 15)
 
                 Rectangle()
-                    .fill(.white.opacity(0.09))
+                    .fill(.white.opacity(0.1))
                     .frame(height: 1)
 
                 ScrollView(.horizontal) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         MoodboardChip(isOn: studio.usesMoodboard) {
                             studio.toggleMoodboard()
                         }
@@ -97,15 +103,15 @@ struct Composer: View {
                     Button {
                         studio.enhance()
                     } label: {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 7) {
                             Image(systemName: "wand.and.stars")
                                 .symbolEffect(.pulse, isActive: studio.isEnhancing)
                             Text("Enhance")
                         }
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.85 : 0.4))
-                        .padding(.horizontal, 6)
-                        .frame(height: 40)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.85 : 0.5))
+                        .padding(.horizontal, 8)
+                        .frame(height: 44)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(PressableStyle())
@@ -113,18 +119,18 @@ struct Composer: View {
 
                     Spacer(minLength: 0)
 
-                    HStack(spacing: 4) {
+                    HStack(spacing: 5) {
                         Image(systemName: "sparkle")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))
                         Text(verbatim: "\(studio.count)")
-                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                            .font(.system(size: 15, weight: .semibold, design: .monospaced))
                             .contentTransition(.numericText(value: Double(studio.count)))
                     }
-                    .foregroundStyle(.white.opacity(0.8))
-                    .padding(.horizontal, 12)
-                    .frame(height: 34)
-                    .background(.white.opacity(0.1), in: Capsule())
-                    .overlay { Capsule().stroke(.white.opacity(0.12), lineWidth: 1) }
+                    .foregroundStyle(.white.opacity(0.9))
+                    .padding(.horizontal, 14)
+                    .frame(height: 38)
+                    .background(.white.opacity(0.12), in: Capsule())
+                    .overlay { Capsule().stroke(.white.opacity(0.35), lineWidth: 1) }
                     .animation(.smooth, value: studio.count)
                     .accessibilityLabel("Costs \(studio.count) credits")
 
@@ -133,20 +139,19 @@ struct Composer: View {
                         studio.generate()
                     }
                 }
-                .padding(.horizontal, 12)
+                .padding(.leading, 12)
+                .padding(.trailing, 14)
                 .padding(.top, 8)
-                .padding(.bottom, 12)
+                .padding(.bottom, 16)
             }
-            .background { DarkGlass(shape: panel) }
-            .padding(.horizontal, 12)
+            .background { FrostedGlass(shape: panel) }
+            .padding(.horizontal, 10)
         }
-        .padding(.top, 12)
-        .padding(.bottom, 6)
         .animation(.smooth(duration: 0.35), value: studio.isGenerating)
     }
 }
 
-/// Small dark-glass capsule used for suggestions above the panel.
+/// Frosted capsule used for suggestions above the panel.
 private struct SuggestionChip: View {
     let preset: Preset
     let isSelected: Bool
@@ -156,54 +161,53 @@ private struct SuggestionChip: View {
             Image(preset.images[0])
                 .resizable()
                 .scaledToFill()
-                .frame(width: 22, height: 22)
+                .frame(width: 24, height: 24)
                 .clipShape(Circle())
             Text(preset.title)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.white)
         }
         .padding(.leading, 5)
-        .padding(.trailing, 12)
+        .padding(.trailing, 13)
         .padding(.vertical, 5)
-        .background { DarkGlass(shape: Capsule()) }
+        .background { FrostedGlass(shape: Capsule(), tintOpacity: 0.36, blur: 16, sheen: 0.14) }
         .overlay {
             if isSelected {
-                Capsule().stroke(.white.opacity(0.85), lineWidth: 1.5)
+                Capsule().stroke(.white.opacity(0.9), lineWidth: 1.5)
             }
         }
         .animation(.smooth(duration: 0.2), value: isSelected)
     }
 }
 
-/// Translucent capsule inside the dark panel.
+/// Soft translucent capsule inside the panel.
 private struct GlassChip: View {
     let systemImage: String
     let text: String
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 7) {
             Image(systemName: systemImage)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 13, weight: .medium))
             Text(text)
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 15))
                 .lineLimit(1)
         }
-        .foregroundStyle(.white.opacity(0.85))
-        .padding(.horizontal, 12)
-        .frame(height: 36)
-        .background(.white.opacity(0.08), in: Capsule())
-        .overlay { Capsule().stroke(.white.opacity(0.1), lineWidth: 1) }
+        .foregroundStyle(.white.opacity(0.88))
+        .padding(.horizontal, 13)
+        .frame(height: 40)
+        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
     }
 }
 
-/// Tiny 2×2 of the moodboard references; white ring when linked.
+/// Tiny 2×2 of the moodboard references; brighter when linked.
 private struct MoodboardChip: View {
     let isOn: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 7) {
+            HStack(spacing: 8) {
                 Grid(horizontalSpacing: 1.5, verticalSpacing: 1.5) {
                     GridRow {
                         thumb(Preset.moodboard[0])
@@ -218,14 +222,13 @@ private struct MoodboardChip: View {
                 .opacity(isOn ? 1 : 0.55)
 
                 Text("Moodboard")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(isOn ? 0.9 : 0.5))
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white.opacity(isOn ? 0.92 : 0.55))
             }
-            .padding(.leading, 6)
-            .padding(.trailing, 12)
-            .frame(height: 36)
-            .background(.white.opacity(isOn ? 0.14 : 0.06), in: Capsule())
-            .overlay { Capsule().stroke(.white.opacity(isOn ? 0.3 : 0.1), lineWidth: 1) }
+            .padding(.leading, 8)
+            .padding(.trailing, 13)
+            .frame(height: 40)
+            .background(.white.opacity(isOn ? 0.16 : 0.06), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
             .animation(.smooth(duration: 0.2), value: isOn)
         }
         .buttonStyle(PressableStyle())
@@ -241,7 +244,7 @@ private struct MoodboardChip: View {
     }
 }
 
-/// White circular send button. While busy it shows a rolling binary readout.
+/// Accent-blue circular send button. While busy it shows a rolling binary readout.
 private struct GenerateButton: View {
     let isBusy: Bool
     let action: () -> Void
@@ -249,22 +252,26 @@ private struct GenerateButton: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                Circle().fill(.white)
+                Circle().fill(Theme.accent)
+                Circle().fill(
+                    LinearGradient(colors: [.white.opacity(0.22), .white.opacity(0)], startPoint: .top, endPoint: .center)
+                )
                 if isBusy {
                     TimelineView(.periodic(from: .now, by: 0.08)) { timeline in
                         Text(verbatim: bits(at: timeline.date))
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundStyle(Theme.ink)
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white)
                     }
                     .transition(.scale.combined(with: .opacity))
                 } else {
                     Image(systemName: "arrow.up")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Theme.ink)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
-            .frame(width: 40, height: 40)
+            .frame(width: 44, height: 44)
+            .shadow(color: Theme.accent.opacity(0.35), radius: 10, y: 4)
             .animation(.spring(duration: 0.3, bounce: 0.3), value: isBusy)
         }
         .buttonStyle(PressableStyle())

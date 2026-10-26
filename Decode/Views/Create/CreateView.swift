@@ -6,6 +6,7 @@ struct CreateView: View {
     @Environment(Studio.self) private var studio
     @AppStorage(SettingsKey.haptics) private var haptics = true
     @Namespace private var zoom
+    @State private var composerHeight: CGFloat = 200
 
     var body: some View {
         @Bindable var studio = studio
@@ -37,7 +38,16 @@ struct CreateView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .background { DotGrid().ignoresSafeArea() }
                 .edgeBar(.top) { CreateHeader() }
-                .edgeBar(.bottom) { Composer() }
+                // The composer floats ~10pt off the bottom edge (inside the
+                // home-indicator area) rather than sitting above it, and the
+                // canvas is padded so the last board can scroll clear of it.
+                .overlay(alignment: .bottom) {
+                    Composer()
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { composerHeight = $0 }
+                        .padding(.bottom, 10)
+                        .ignoresSafeArea(.container, edges: .bottom)
+                }
+                .safeAreaPadding(.bottom, max(0, composerHeight - 18))
                 // Camera follow: frame the cable as the new board links in, then
                 // glide down with the sweep so the bottom row decodes on screen.
                 // Both wait a beat so the new views exist before scrolling.
@@ -107,13 +117,12 @@ private struct CreateHeader: View {
                 HStack(spacing: 5) {
                     Image(systemName: "sparkle")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Theme.accent)
                     Text(verbatim: "\(studio.credits)")
-                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Theme.ink)
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
                         .contentTransition(.numericText(value: Double(studio.credits)))
                         .animation(.smooth, value: studio.credits)
                 }
+                .foregroundStyle(.white)
                 .padding(.horizontal, 14)
                 .frame(height: 42)
                 .contentShape(Capsule())
