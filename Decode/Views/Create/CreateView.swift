@@ -9,6 +9,7 @@ struct CreateView: View {
     @AppStorage(SettingsKey.edgeLens) private var edgeLens = true
     @AppStorage(SettingsKey.reduceEffects) private var reduceEffects = false
     @State private var composerHeight: CGFloat = 200
+    @State private var panelTop: CGFloat = 700
     /// Status bar + header: the zone the top blur covers.
     @State private var topInset: CGFloat = 110
     /// The canvas's frame in the window; it spans the whole screen.
@@ -17,12 +18,14 @@ struct CreateView: View {
     var body: some View {
         @Bindable var studio = studio
         // Thick-glass edges: boards are magnified as they slide under the
-        // header and under the composer. The bands reach well past the bars,
-        // as in the reference, so the bend is visible before the blur takes over.
+        // header and under the composer's glass. The top band reaches well
+        // past the header, as in the reference, so the bend shows before the
+        // blur takes over; the bottom one starts just above the panel, since
+        // anything higher would warp a board between the suggestion chips.
         let lens = EdgeLensBands(
             top: canvasFrame.minY + topInset + 70,
-            bottomStart: canvasFrame.maxY - composerHeight - 10 - 50,
-            bottom: composerHeight + 60
+            bottomStart: panelTop - 24,
+            bottom: max(1, canvasFrame.maxY - panelTop + 24)
         )
         let lensOn = edgeLens && !reduceEffects
 
@@ -97,7 +100,7 @@ struct CreateView: View {
                 }
 
                 // Floats ~10pt off the bottom edge, inside the home-indicator area.
-                Composer()
+                Composer(panelTop: $panelTop)
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { composerHeight = $0 }
                     .padding(.bottom, 10)
                     .ignoresSafeArea(.container, edges: .bottom)

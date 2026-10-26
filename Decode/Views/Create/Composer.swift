@@ -6,6 +6,9 @@ import SwiftUI
 /// on an iPhone without scrolling. Suggestions float above it.
 /// Output is always 1:1 so the 2×2 fits above the panel in recordings.
 struct Composer: View {
+    /// Window y of the glass panel's top edge, for the canvas's bottom lens.
+    @Binding var panelTop: CGFloat
+
     @Environment(Studio.self) private var studio
     @FocusState private var isFocused: Bool
     @AppStorage(SettingsKey.reduceEffects) private var reduceEffects = false
@@ -107,6 +110,7 @@ struct Composer: View {
                     .padding(.bottom, 12)
                 }
                 .smokedGlass(in: panel, strength: 0.62, lite: reduceEffects)
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { panelTop = $0 }
                 .padding(.horizontal, 10)
         }
         }
