@@ -144,7 +144,8 @@ private struct SuggestionChip: View {
         .padding(.leading, 5)
         .padding(.trailing, 12)
         .padding(.vertical, 5)
-        .smokedGlass(in: Capsule(), strength: 0.6, interactive: true)
+        .background(Color(white: 0.12).opacity(0.78), in: Capsule())
+        .overlay { Capsule().stroke(.white.opacity(0.14), lineWidth: 1) }
         .overlay {
             if isSelected {
                 Capsule().stroke(.white.opacity(0.85), lineWidth: 1.5)

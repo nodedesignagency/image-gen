@@ -1,15 +1,15 @@
 import SwiftUI
 
-/// Soft drifting lights behind the canvas, one per image of the latest
-/// generation, so the glass above has something to refract. Four pool at
-/// the bottom under the composer, two echo faintly under the header.
+/// Soft lights behind the canvas, one per image of the latest generation, so
+/// the glass above has something to refract. Four pool at the bottom under the
+/// composer, two echo faintly under the header.
 ///
 /// Fills the whole screen and fades its own edges, so nothing gets clipped.
+/// Static between generations: six blurred layers re-rendered every frame was
+/// most of the app's GPU time, so they only cross-fade when the images change.
 struct AmbientWash: View {
     let images: [String]
     var opacity = 0.5
-
-    @State private var drift = false
 
     var body: some View {
         GeometryReader { proxy in
@@ -31,12 +31,13 @@ struct AmbientWash: View {
                         .blur(radius: 36)
                         .opacity(isTop ? 0.5 : 1)
                         .position(
-                            x: xs[slot] * width + (drift ? cos(seed * 1.9) : sin(seed * 2.3)) * width * 0.12,
-                            y: ys[slot] * height + (drift ? sin(seed * 1.3) : cos(seed * 0.7)) * 36
+                            x: xs[slot] * width + sin(seed * 2.3) * width * 0.08,
+                            y: ys[slot] * height + cos(seed * 0.7) * 24
                         )
                 }
             }
             .opacity(opacity)
+            .drawingGroup()
             .mask {
                 LinearGradient(
                     stops: [
@@ -48,11 +49,6 @@ struct AmbientWash: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-            }
-        }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 11).repeatForever(autoreverses: true)) {
-                drift = true
             }
         }
         .animation(.smooth(duration: 1.8), value: images)

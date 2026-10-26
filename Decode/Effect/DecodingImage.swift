@@ -21,7 +21,7 @@ struct DecodingImage: View {
             let grid = DecodeGrid(size: proxy.size, density: density)
             let palette = PaletteCache.shared.palette(for: imageName, columns: grid.columns, rows: grid.rows)
 
-            TimelineView(.animation) { timeline in
+            TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
                 let elapsed = timeline.date.timeIntervalSince(start)
                 let progress = min(max(elapsed / duration, 0), 1)
 

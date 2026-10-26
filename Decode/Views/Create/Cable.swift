@@ -25,7 +25,7 @@ struct Cable: View {
                     .shadow(color: .black.opacity(0.07), radius: 2, y: 1)
 
                 if isLive {
-                    TimelineView(.animation) { timeline in
+                    TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
                         let phase = (timeline.date.timeIntervalSinceReferenceDate * 36)
                             .truncatingRemainder(dividingBy: 12)
                         route
