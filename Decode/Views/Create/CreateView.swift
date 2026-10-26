@@ -65,6 +65,7 @@ struct CreateView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .toolbar(.hidden, for: .tabBar)
             .navigationDestination(for: ShotRoute.self) { route in
                 ShotDetailView(route: route)
                     .navigationTransition(.zoom(sourceID: route.id, in: zoom))
@@ -96,11 +97,7 @@ private struct CreateHeader: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            LogoMark()
-            Text("decode")
-                .font(.system(size: 21, weight: .semibold))
-                .tracking(-0.5)
-                .foregroundStyle(Theme.ink)
+            AppMenuButton()
 
             Spacer()
 
@@ -117,10 +114,10 @@ private struct CreateHeader: View {
                         .contentTransition(.numericText(value: Double(studio.credits)))
                         .animation(.smooth, value: studio.credits)
                 }
-                .padding(.horizontal, 12)
-                .frame(height: 34)
-                .background(Theme.card, in: Capsule())
-                .cardShadow()
+                .padding(.horizontal, 14)
+                .frame(height: 42)
+                .contentShape(Capsule())
+                .glassChrome(in: Capsule())
             }
             .buttonStyle(PressableStyle())
             .accessibilityLabel("\(studio.credits) credits")
@@ -130,12 +127,15 @@ private struct CreateHeader: View {
                     withAnimation(.smooth) { studio.resetCanvas() }
                 }
                 .disabled(studio.isGenerating)
+                Button("Get more credits", systemImage: "sparkle") {
+                    studio.showPaywall = true
+                }
             } label: {
                 CircleIcon(systemImage: "ellipsis")
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 6)
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
         .padding(.bottom, 10)
     }
 }

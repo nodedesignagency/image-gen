@@ -26,7 +26,8 @@ struct LogoMark: View {
     }
 }
 
-/// Large screen title with optional trailing controls. Pin it with `.edgeBar(.top)`.
+/// Screen title with the app menu on the left and optional trailing controls.
+/// Pin it with `.edgeBar(.top)`.
 struct TopBar<Trailing: View>: View {
     let title: String
     let trailing: Trailing
@@ -37,17 +38,18 @@ struct TopBar<Trailing: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: 12) {
+            AppMenuButton()
             Text(title)
-                .font(.system(size: 30, weight: .semibold))
-                .tracking(-0.8)
+                .font(.system(size: 26, weight: .semibold))
+                .tracking(-0.7)
                 .foregroundStyle(Theme.ink)
             Spacer(minLength: 0)
             trailing
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 6)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+        .padding(.bottom, 10)
     }
 }
 
@@ -57,17 +59,49 @@ extension TopBar where Trailing == EmptyView {
     }
 }
 
-/// Round white icon button used in top bars.
+/// Round glass icon used for top-bar controls.
 struct CircleIcon: View {
     let systemImage: String
+    var size: CGFloat = 42
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.system(size: 14, weight: .semibold))
+            .font(.system(size: 15, weight: .semibold))
             .foregroundStyle(Theme.ink)
-            .frame(width: 34, height: 34)
-            .background(Theme.card, in: Circle())
-            .cardShadow()
+            .frame(width: size, height: size)
+            .contentShape(Circle())
+            .glassChrome(in: Circle())
+    }
+}
+
+/// Hamburger menu: the app's navigation now that the tab bar is hidden.
+struct AppMenuButton: View {
+    @Environment(Studio.self) private var studio
+
+    var body: some View {
+        @Bindable var studio = studio
+
+        Menu {
+            Picker("Go to", selection: $studio.tab) {
+                Label("Create", systemImage: "sparkles").tag(AppTab.create)
+                Label("Explore", systemImage: "safari").tag(AppTab.explore)
+                Label("Library", systemImage: "photo.stack").tag(AppTab.library)
+                Label("Profile", systemImage: "person.crop.circle").tag(AppTab.profile)
+            }
+            Section {
+                Button("New canvas", systemImage: "square.dashed") {
+                    studio.resetCanvas()
+                    studio.select(.create)
+                }
+                .disabled(studio.isGenerating)
+                Button("Play demo", systemImage: "play.circle") {
+                    Task { await Autopilot.run(studio, fromLaunch: false) }
+                }
+            }
+        } label: {
+            CircleIcon(systemImage: "line.3.horizontal")
+        }
+        .accessibilityLabel("Menu")
     }
 }
 

@@ -59,6 +59,7 @@ struct LibraryView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .toolbar(.hidden, for: .tabBar)
             .navigationDestination(for: ShotRoute.self) { route in
                 ShotDetailView(route: route)
                     .navigationTransition(.zoom(sourceID: route.id, in: zoom))

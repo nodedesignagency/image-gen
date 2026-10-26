@@ -15,14 +15,15 @@ already read the image while it's still made of digits), and the real pixels fad
 | **Splash** | Logo mark spins in, the wordmark types itself through flickering bits. |
 | **Onboarding** | Three pages; each picture decodes as its page comes into view. Skippable. |
 | **Create** | Dotted canvas of white "folder" boards. The first is your moodboard. Each generation cables in from the previous board, its title scrambles in, and the images decode one after another with a light haptic each. |
-| **Composer** | Suggestion chips, prompt field, ✨ enhance (types extra style words into your prompt), moodboard toggle, and working menus for style, image count (1/2/4) and aspect ratio (3:4, 1:1, 9:16). |
+| **Composer** | Dark frosted-glass panel: prompt, moodboard toggle, working menus for image count (1/2/4), style and aspect ratio (3:4, 1:1, 9:16), **Enhance** (types extra style words into your prompt), the credit cost and send. Suggestion chips float above it. |
+| **Navigation** | The tab bar is hidden so recordings show only the canvas. The ☰ glass button (top left) switches between Create, Explore, Library and Profile, and has New canvas and Play demo. Content blurs progressively under the top bar and composer. |
 | **Detail** | Zooms in from the tile (iOS 18 zoom transition). **Re-decode** replays the sweep full size, **Upscale 2×** replays it with finer bits and badges the result. Remix, Vary, Share, Save, Favourite, and long-press the prompt to copy it. |
 | **Explore** | Community feed in a two-column masonry, filter chips, made-up creators and like counts. Tiles decode in the first time they appear. |
 | **Library** | Everything you've generated, grouped by day, with an All / Favourites switch. |
 | **Profile** | Stats, credits meter, settings (haptics, decode speed, decode Explore tiles) and demo controls. |
 | **Paywall** | "Decode Pro" sheet. Purely cosmetic; it flips the account to Pro and tops up credits. It also opens when you run out of credits or tap the credit pill. |
 
-Generating costs one credit per image, the same as a real app would charge. **New canvas** (the `…` menu on Create, or Profile) clears the board for another take.
+Generating costs one credit per image, the same as a real app would charge. **New canvas** (in the ☰ menu or the `…` menu on Create) clears the board for another take.
 
 ## Run it
 
@@ -56,7 +57,7 @@ The project uses a synced folder, so any file you add inside `Decode/` is picked
 
 ## Recording a demo
 
-**Hands-free:** Profile → **Play demo**. The app types a prompt, generates, enhances a second
+**Hands-free:** ☰ → **Play demo**. The app types a prompt, generates, enhances a second
 prompt, generates again in a different style and ratio, opens a result and re-decodes it, favourites it,
 then tours Explore, Library and Profile. It takes about 45 seconds.
 

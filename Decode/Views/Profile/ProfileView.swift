@@ -31,6 +31,7 @@ struct ProfileView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .toolbar(.hidden, for: .tabBar)
         }
     }
 
