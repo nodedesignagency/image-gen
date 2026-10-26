@@ -42,7 +42,7 @@ struct Composer: View {
                 TextField(
                     "Imagine something",
                     text: $studio.prompt,
-                    prompt: Text("Imagine something…").foregroundColor(.white.opacity(0.55)),
+                    prompt: Text("Imagine something…").foregroundColor(.white.opacity(0.6)),
                     axis: .vertical
                 )
                 .font(.system(size: 17))
@@ -55,7 +55,7 @@ struct Composer: View {
                 .padding(.bottom, 15)
 
                 Rectangle()
-                    .fill(.white.opacity(0.1))
+                    .fill(.white.opacity(0.06))
                     .frame(height: 1)
 
                 ScrollView(.horizontal) {
@@ -129,8 +129,8 @@ struct Composer: View {
                     .foregroundStyle(.white.opacity(0.9))
                     .padding(.horizontal, 14)
                     .frame(height: 38)
-                    .background(.white.opacity(0.12), in: Capsule())
-                    .overlay { Capsule().stroke(.white.opacity(0.35), lineWidth: 1) }
+                    .background(.white.opacity(0.06), in: Capsule())
+                    .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
                     .animation(.smooth, value: studio.count)
                     .accessibilityLabel("Costs \(studio.count) credits")
 
@@ -170,7 +170,7 @@ private struct SuggestionChip: View {
         .padding(.leading, 5)
         .padding(.trailing, 13)
         .padding(.vertical, 5)
-        .background { FrostedGlass(shape: Capsule(), tintOpacity: 0.36, blur: 16, sheen: 0.14) }
+        .background { FrostedGlass(shape: Capsule(), opacity: 0.82, blur: 18) }
         .overlay {
             if isSelected {
                 Capsule().stroke(.white.opacity(0.9), lineWidth: 1.5)
@@ -194,9 +194,10 @@ private struct GlassChip: View {
                 .lineLimit(1)
         }
         .foregroundStyle(.white.opacity(0.88))
-        .padding(.horizontal, 13)
+        .padding(.horizontal, 14)
         .frame(height: 40)
-        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .background(.white.opacity(0.05), in: Capsule())
+        .overlay { Capsule().stroke(.white.opacity(0.14), lineWidth: 1) }
     }
 }
 
@@ -225,10 +226,11 @@ private struct MoodboardChip: View {
                     .font(.system(size: 15))
                     .foregroundStyle(.white.opacity(isOn ? 0.92 : 0.55))
             }
-            .padding(.leading, 8)
-            .padding(.trailing, 13)
+            .padding(.leading, 9)
+            .padding(.trailing, 14)
             .frame(height: 40)
-            .background(.white.opacity(isOn ? 0.16 : 0.06), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .background(.white.opacity(isOn ? 0.12 : 0.04), in: Capsule())
+            .overlay { Capsule().stroke(.white.opacity(isOn ? 0.26 : 0.1), lineWidth: 1) }
             .animation(.smooth(duration: 0.2), value: isOn)
         }
         .buttonStyle(PressableStyle())
@@ -271,7 +273,7 @@ private struct GenerateButton: View {
                 }
             }
             .frame(width: 44, height: 44)
-            .shadow(color: Theme.accent.opacity(0.35), radius: 10, y: 4)
+            .shadow(color: Theme.accent.opacity(0.3), radius: 8, y: 3)
             .animation(.spring(duration: 0.3, bounce: 0.3), value: isBusy)
         }
         .buttonStyle(PressableStyle())

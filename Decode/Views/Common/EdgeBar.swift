@@ -14,38 +14,53 @@ extension View {
         }
     }
 
-    /// Frosted grey glass behind a floating control. Pair with white content.
+    /// Dark glass behind a floating control. Pair with white content.
     func glassChrome<S: Shape>(in shape: S) -> some View {
-        background { FrostedGlass(shape: shape, tintOpacity: 0.34, blur: 16, sheen: 0.16) }
+        background { FrostedGlass(shape: shape, opacity: 0.8, blur: 18) }
     }
 }
 
-/// Frosted glass: an even blur of whatever is behind, a grey tint, a soft top
-/// sheen and a thin bright rim, with a diffuse drop shadow.
+/// Dark smoked glass: an even blur of whatever is behind under a charcoal
+/// gradient (lighter top-leading, near black bottom-trailing), a faint top
+/// sheen, a thin rim that catches light along the top, and a soft shadow.
 struct FrostedGlass<S: Shape>: View {
     let shape: S
-    var tint = Color(white: 0.1)
-    var tintOpacity = 0.5
-    var blur: CGFloat = 26
-    var sheen = 0.12
+    /// How much of the charcoal covers the blur; lower lets more show through.
+    var opacity = 0.84
+    var blur: CGFloat = 30
 
     var body: some View {
         BackdropBlur(radius: blur)
             .clipShape(shape)
-            .overlay { shape.fill(tint.opacity(tintOpacity)) }
             .overlay {
                 shape.fill(
                     LinearGradient(
-                        colors: [.white.opacity(sheen), .white.opacity(0)],
+                        colors: [Color(white: 0.24).opacity(opacity), Color(white: 0.05).opacity(opacity)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            }
+            .overlay {
+                shape.fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .white.opacity(0.09), location: 0),
+                            .init(color: .white.opacity(0), location: 0.5),
+                        ],
                         startPoint: .top,
-                        endPoint: .center
+                        endPoint: .bottom
                     )
                 )
             }
             .overlay {
                 shape.stroke(
                     LinearGradient(
-                        colors: [.white.opacity(0.32), .white.opacity(0.06)],
+                        stops: [
+                            .init(color: .white.opacity(0.2), location: 0),
+                            .init(color: .white.opacity(0.04), location: 0.4),
+                            .init(color: .white.opacity(0.07), location: 1),
+                        ],
                         startPoint: .top,
                         endPoint: .bottom
                     ),
@@ -54,9 +69,9 @@ struct FrostedGlass<S: Shape>: View {
             }
             .background {
                 shape
-                    .fill(Color.black.opacity(0.16))
-                    .blur(radius: 18)
-                    .offset(y: 10)
+                    .fill(Color.black.opacity(0.22))
+                    .blur(radius: 20)
+                    .offset(y: 12)
             }
     }
 }
