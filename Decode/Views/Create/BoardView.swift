@@ -4,9 +4,6 @@ import SwiftUI
 struct BoardView: View {
     let board: Board
     let zoom: Namespace.ID
-    /// Screen y where the header's blur band ends; the lens pulls content above it.
-    var lensBand: CGFloat = 0
-    var lensEnabled = false
 
     var body: some View {
         let isHidden = board.phase == .linking
@@ -39,17 +36,6 @@ struct BoardView: View {
         .cardShadow()
         .opacity(isHidden ? 0 : 1)
         .scaleEffect(isHidden ? 0.94 : 1, anchor: .top)
-        // Edge lens: content stretches toward the top edge as the board slides
-        // under the header blur. Per board, and only while this board actually
-        // reaches the band, so nothing else is rasterised for it.
-        .visualEffect { [lensBand, lensEnabled] content, proxy in
-            let band = lensBand - proxy.frame(in: .scrollView).minY
-            return content.distortionEffect(
-                ShaderLibrary.edgeLens(.float(band), .float(34)),
-                maxSampleOffset: CGSize(width: 0, height: 34),
-                isEnabled: lensEnabled && band > 0
-            )
-        }
     }
 }
 
@@ -68,12 +54,12 @@ private struct BoardTab: View {
                     Text(board.title)
                 }
             }
-            .font(.system(size: 14, weight: .medium))
+            .font(.label)
             .foregroundStyle(Theme.ink)
             .lineLimit(1)
 
             Text(verbatim: board.phase == .done ? "\(board.shots.count)" : "\(board.decodedCount)/\(board.shots.count)")
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .font(.monoMeta)
                 .foregroundStyle(Theme.secondary)
                 .contentTransition(.numericText())
                 .animation(.smooth, value: board.decodedCount)
@@ -174,13 +160,13 @@ private struct BoardFooter: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(board.prompt)
-                .font(.system(size: 13))
+                .font(.supporting)
                 .foregroundStyle(Theme.ink.opacity(0.75))
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(verbatim: status)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .font(.monoMeta)
                 .foregroundStyle(board.phase == .done ? Theme.secondary : Theme.accent)
                 .contentTransition(.numericText())
                 .animation(.smooth, value: status)

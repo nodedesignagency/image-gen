@@ -49,7 +49,7 @@ struct Composer: View {
                         prompt: Text("Imagine something…").foregroundColor(.white.opacity(0.45)),
                         axis: .vertical
                     )
-                    .font(.system(size: 18))
+                    .font(.sans(18))
                     .foregroundStyle(.white.opacity(0.95))
                     .tint(.white)
                     .lineLimit(2...4)
@@ -139,7 +139,7 @@ private struct SuggestionChip: View {
                 .frame(width: 22, height: 22)
                 .clipShape(Circle())
             Text(preset.title)
-                .font(.system(size: 13, weight: .medium))
+                .font(.chip)
                 .foregroundStyle(.white.opacity(0.92))
         }
         .padding(.leading, 5)
@@ -166,7 +166,7 @@ private struct MonoPill: View {
             Image(systemName: systemImage)
                 .font(.system(size: 12, weight: .medium))
             Text(verbatim: text)
-                .font(.mono(13))
+                .font(.monoValue)
                 .lineLimit(1)
             Image(systemName: "chevron.down")
                 .font(.system(size: 10, weight: .semibold))
@@ -250,7 +250,7 @@ private struct SendButton: View {
                 if isBusy {
                     TimelineView(.periodic(from: .now, by: 0.08)) { timeline in
                         Text(verbatim: bits(at: timeline.date))
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .font(.mono(11, .bold))
                             .foregroundStyle(Color(white: 0.2))
                     }
                     .transition(.scale.combined(with: .opacity))
