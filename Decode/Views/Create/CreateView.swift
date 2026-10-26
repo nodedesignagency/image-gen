@@ -16,6 +16,7 @@ struct CreateView: View {
 
         NavigationStack(path: $studio.createPath) {
             ScrollViewReader { proxy in
+                ZStack(alignment: .bottom) {
                 ScrollView {
                     VStack(spacing: 0) {
                         ForEach(Array(studio.boards.enumerated()), id: \.element.id) { index, board in
@@ -55,21 +56,16 @@ struct CreateView: View {
                 .background {
                     ZStack {
                         DotGrid()
-                        AmbientWash(images: studio.ambientImages, opacity: 0.5)
+                        AmbientWash(images: studio.ambientImages, opacity: 0.42)
                     }
                     .ignoresSafeArea()
                 }
                 .edgeBar(.top) { CreateHeader() }
-                // The composer floats ~10pt off the bottom edge (inside the
-                // home-indicator area) rather than sitting above it, and the
-                // canvas is padded so the last board can scroll clear of it.
-                .overlay(alignment: .bottom) {
-                    Composer()
-                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { composerHeight = $0 }
-                        .padding(.bottom, 10)
-                        .ignoresSafeArea(.container, edges: .bottom)
-                }
-                .safeAreaPadding(.bottom, max(0, composerHeight - 18))
+                // Room for the last board to scroll clear of the composer. A
+                // content margin, not safe-area padding: padding derived from
+                // the composer's own height fed back into its position and
+                // lifted it by that height on first appearance.
+                .contentMargins(.bottom, max(0, composerHeight - 18), for: .scrollContent)
                 // Camera follow: frame the cable as the new board links in, then
                 // glide down with the sweep so the bottom row decodes on screen.
                 // Both wait a beat so the new views exist before scrolling.
@@ -94,6 +90,13 @@ struct CreateView: View {
                             proxy.scrollTo(Self.boardID(last), anchor: .bottom)
                         }
                     }
+                }
+
+                // Floats ~10pt off the bottom edge, inside the home-indicator area.
+                Composer()
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { composerHeight = $0 }
+                    .padding(.bottom, 10)
+                    .ignoresSafeArea(.container, edges: .bottom)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
