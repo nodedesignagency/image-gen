@@ -35,7 +35,11 @@ and the CPU only supplies a clock. See README.md for the feature tour.
   composer). Use `contentMargins(_, for: .scrollContent)`.
 - `scripts/run.sh` runs on macOS's bash 3.2: brace variables next to non-ASCII (`"${NAME}…"`),
   guard empty arrays under `set -u`.
-- Liquid Glass / iOS 26 APIs must sit inside `#if compiler(>=6.2)` + `if #available(iOS 26.0, *)`.
+- **No Liquid Glass (`glassEffect`).** In the simulator it re-ran its refraction passes for every
+  glass piece on every frame the canvas changed and pinned a decode at a steady 20 fps on the
+  user's Mac (frame diffs showed a strict change/same/same cadence). `smokedGlass` is now one
+  standard `.ultraThinMaterial` blur under a charcoal tint, glow and rim (`FrostedGlass`). If an
+  iOS 26 API is ever needed again it must sit inside `#if compiler(>=6.2)` + `#available`.
 - `VariableBlur` uses Core Animation's private `variableBlur` filter (fine for this demo, not App
   Store-safe) and must re-apply its filter in `layoutSubviews`.
 - Performance matters to the user ("feels heavy"). Avoid anything that re-blurs or re-rasterises
@@ -56,15 +60,16 @@ and the CPU only supplies a clock. See README.md for the feature tour.
 
 ## Design decisions the user has made
 
-- **Dark smoked glass** for floating UI: Liquid Glass tinted black (`smokedGlass`, `glassChrome` in
-  `Views/Common/EdgeBar.swift`). Light painted gradients were rejected as "not glass". References:
-  dark prompt boxes with a top-left glow and light rim; Perplexity's composer layout.
+- **Dark smoked glass** for floating UI (`smokedGlass`, `glassChrome` in
+  `Views/Common/EdgeBar.swift`): a real backdrop blur under a black tint. Light painted gradients
+  were rejected as "not glass". References: dark prompt boxes with a top-left glow and light rim.
 - Glass needs something behind it: `AmbientWash` paints static soft lights from the latest board's
   colours behind the canvas edges.
-- Composer: roomy 2-line prompt, round moodboard + enhance buttons, plain mono pills for model
-  (`decode-2`, `decode-2-pro` costs 2 credits, `decode-lite`) and style, light send button.
-  **The row never scrolls** (user hated the clipped pills); it is sized so the longest names fit.
-  Floats ~10pt above the bottom edge with screen-concentric bottom corners.
+- Composer, structured after a reference the user loves (attach · grouped icon segment · model
+  pill · send): round moodboard button, one outlined pill grouping the icon actions (enhance,
+  style), one model pill with the cpu icon and the id in mono (`decode-2`, `decode-2-pro` costs
+  2 credits, `decode-lite`), light send button. **The row never scrolls** and the user rejected
+  two text pills side by side. Floats ~10pt above the bottom edge with screen-concentric corners.
 - Metadata is shown as small chips (`MetaChip`, Framer-property style: grey fill on cards, white
   on the canvas, accent while live) in a wrapping `ChipFlow`, never a horizontal scroll.
 - **Output is always 4 square (1:1) images** so the whole 2×2 decodes on screen in recordings.
@@ -74,10 +79,12 @@ and the CPU only supplies a clock. See README.md for the feature tour.
 - **Edge lens** (on by default): boards are magnified toward the edge as they leave the screen,
   under the header and under the composer: content stretches along the scroll axis, the sides
   flare out, and it smears along the stretch (`View.edgeLens` in `Effect/EdgeLens.swift`, a
-  `layerEffect` in `Shaders.metal`). Per board but computed in screen space; cables are *not*
-  lensed (a thin line through it read as a blob). Reference: a carousel where cards stretch and
-  blur into the screen edges like thick glass. Bands reach ~70pt past the header and ~50pt above
-  the composer; stretch is 0.34 of the band, widen 0.14, smear 0.08.
+  `layerEffect` in `Shaders.metal`), with the colour channels splitting along the stretch like a
+  prism, which the user asked for after the reference. Per board but computed in screen space;
+  cables are *not* lensed (a thin line through it read as a blob). Reference: a carousel where
+  cards stretch and blur into the screen edges like thick glass. The top band ends 16pt under
+  the header (the user wanted the resting moodboard untouched), the bottom one starts 24pt above
+  the composer's glass; stretch 0.36 of the band, widen 0.18, smear 0.14, fringe 0.05.
 - Typography: SF for prose, SF Mono for machine values (counts, model ids, seeds, prices, timers,
   bits). Use the named scale in `App/Theme.swift` (`.display`, `.screenTitle`, `.heading`,
   `.prose`, `.button`, `.label`, `.chip`, `.supporting`, `.note`, `.micro`; `.monoStat`,
@@ -86,9 +93,10 @@ and the CPU only supplies a clock. See README.md for the feature tour.
 
 ## Open items
 
-- Confirm on the user's Mac that the shader decode runs smoothly (ask for a 10 s recording and
-  count unique frames). Remaining known hitch: ~200 ms when generate is tapped (glass composer
-  resizing as the suggestions hide, new board + cable appearing).
+- Confirm on the user's Mac that dropping Liquid Glass fixed the steady 20 fps (ask for a 10 s
+  recording; inside the decoding board, diff consecutive frames and look for the change/same/same
+  cadence). If it's still 20 fps the next suspect is the header's private `variableBlur` filter.
+  Remaining known hitch: ~200 ms when generate is tapped (composer resizing, new board + cable).
 - Lens tuning against the reference (strength, band size, bottom edge) is new and unreviewed.
 - The user wants the whole thing to look premium for a client-facing post: keep polishing
   typography and spacing wherever a screenshot shows something rough.

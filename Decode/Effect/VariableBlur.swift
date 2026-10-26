@@ -24,25 +24,6 @@ struct VariableBlur: View {
     }
 }
 
-/// Even, untinted blur of whatever is behind: the base of `FrostedGlass`.
-struct BackdropBlur: View {
-    var radius: CGFloat = 24
-
-    var body: some View {
-        Group {
-            if VariableBlurView.isAvailable {
-                VariableBlurRepresentable(edge: .top, radius: radius, uniform: true)
-            } else {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .environment(\.colorScheme, .dark)
-            }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-}
-
 private struct VariableBlurRepresentable: UIViewRepresentable {
     let edge: VerticalEdge
     let radius: CGFloat

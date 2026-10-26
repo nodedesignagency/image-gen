@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// Bottom prompt panel in smoked glass: a roomy prompt on top, then one row
-/// of round icon buttons, mono pills (model, style) and a light send button
-/// pinned right. The row is sized so the longest model and style names fit
-/// on an iPhone without scrolling. Suggestions float above it.
+/// of controls and a light send button pinned right: the round moodboard
+/// button, a grouped pill of icon actions (enhance, style), and one pill for
+/// the model. It never scrolls. Suggestions float above it.
 /// Output is always 1:1 so the 2×2 fits above the panel in recordings.
 struct Composer: View {
     /// Window y of the glass panel's top edge, for the canvas's bottom lens.
@@ -23,7 +23,7 @@ struct Composer: View {
         @Bindable var studio = studio
         let hasText = !studio.prompt.trimmingCharacters(in: .whitespaces).isEmpty
 
-        GlassGroup {
+        Group {
             VStack(spacing: 10) {
                 // Suggestions step aside while a board decodes, giving it more room.
                 if !studio.isGenerating {
@@ -68,14 +68,43 @@ struct Composer: View {
                             MoodboardThumbs(isOn: studio.usesMoodboard)
                         }
 
-                        RoundIconButton(isOn: studio.isEnhancing, label: "Enhance prompt") {
-                            studio.enhance()
-                        } content: {
-                            Image(systemName: "wand.and.stars")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.9 : 0.5))
-                                .symbolEffect(.pulse, isActive: studio.isEnhancing)
+                        // Icon actions share one outlined pill, like a toolbar segment.
+                        HStack(spacing: 0) {
+                            Button {
+                                studio.enhance()
+                            } label: {
+                                Image(systemName: "wand.and.stars")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.9 : 0.5))
+                                    .symbolEffect(.pulse, isActive: studio.isEnhancing)
+                                    .frame(width: 40, height: 40)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(PressableStyle())
+                            .accessibilityLabel("Enhance prompt")
+
+                            Rectangle()
+                                .fill(.white.opacity(0.14))
+                                .frame(width: 1, height: 18)
+
+                            Menu {
+                                Picker("Style", selection: $studio.style) {
+                                    ForEach(ImageStyle.allCases) { style in
+                                        Label(style.rawValue, systemImage: style.symbol).tag(style)
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: studio.style.symbol)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(.white.opacity(0.9))
+                                    .contentTransition(.symbolEffect(.replace))
+                                    .frame(width: 40, height: 40)
+                                    .contentShape(Rectangle())
+                            }
+                            .accessibilityLabel("Style: \(studio.style.rawValue)")
                         }
+                        .background(.white.opacity(0.04), in: Capsule())
+                        .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
 
                         Menu {
                             Picker("Model", selection: $studio.model) {
@@ -84,20 +113,9 @@ struct Composer: View {
                                 }
                             }
                         } label: {
-                            MonoPill(text: studio.model.slug)
+                            ModelPill(text: studio.model.slug)
                         }
                         .accessibilityLabel("Model: \(studio.model.rawValue)")
-
-                        Menu {
-                            Picker("Style", selection: $studio.style) {
-                                ForEach(ImageStyle.allCases) { style in
-                                    Label(style.rawValue, systemImage: style.symbol).tag(style)
-                                }
-                            }
-                        } label: {
-                            MonoPill(text: studio.style.rawValue.lowercased())
-                        }
-                        .accessibilityLabel("Style: \(studio.style.rawValue)")
 
                         Spacer(minLength: 4)
 
@@ -148,23 +166,28 @@ private struct SuggestionChip: View {
     }
 }
 
-/// Outlined capsule with a mono value, for pickers.
-private struct MonoPill: View {
+/// Outlined capsule with the chip icon and the model id in mono.
+private struct ModelPill: View {
     let text: String
 
     var body: some View {
-        Text(verbatim: text)
-            .font(.mono(12))
-            .lineLimit(1)
-            .fixedSize()
-            .foregroundStyle(.white.opacity(0.9))
-            .padding(.horizontal, 11)
-            .frame(height: 40)
-            .background(.white.opacity(0.04), in: Capsule())
-            .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
-            .contentShape(Capsule())
-            .contentTransition(.numericText())
-            .animation(.smooth(duration: 0.25), value: text)
+        HStack(spacing: 6) {
+            Image(systemName: "cpu")
+                .font(.system(size: 12, weight: .medium))
+            Text(verbatim: text)
+                .font(.mono(12))
+                .lineLimit(1)
+                .fixedSize()
+                .contentTransition(.numericText())
+        }
+        .foregroundStyle(.white.opacity(0.9))
+        .padding(.leading, 11)
+        .padding(.trailing, 12)
+        .frame(height: 40)
+        .background(.white.opacity(0.04), in: Capsule())
+        .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
+        .contentShape(Capsule())
+        .animation(.smooth(duration: 0.25), value: text)
     }
 }
 

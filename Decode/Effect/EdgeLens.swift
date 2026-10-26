@@ -25,10 +25,11 @@ extension View {
     ///
     /// Assumes the view is centred horizontally on screen, as boards are.
     func edgeLens(_ bands: EdgeLensBands, isEnabled: Bool) -> some View {
-        let stretch: CGFloat = 0.34   // of the band, per edge
-        let widen: CGFloat = 0.14
-        let smear: CGFloat = 0.08
-        let reach = max(bands.top, bands.bottom) * (stretch + smear)
+        let stretch: CGFloat = 0.36   // of the band, per edge
+        let widen: CGFloat = 0.18
+        let smear: CGFloat = 0.14
+        let fringe: CGFloat = 0.05    // colour channels drift apart along the stretch
+        let reach = max(bands.top, bands.bottom) * (stretch + smear + fringe)
         return visualEffect { content, proxy in
             let frame = proxy.frame(in: .global)
             let reaches = frame.minY < bands.top || frame.maxY > bands.bottomStart
@@ -46,6 +47,7 @@ extension View {
                     .float(stretch),
                     .float(widen),
                     .float(smear),
+                    .float(fringe),
                     .float(centerX)
                 ),
                 maxSampleOffset: CGSize(width: (centerX * widen).rounded(.up), height: reach.rounded(.up)),

@@ -165,14 +165,15 @@ constant float3 kPlaceholder = float3(0.933f, 0.933f, 0.925f);
 /// Thick-glass edges for the canvas, in screen space so neighbouring boards
 /// bend together. Inside the top band (and the bottom band under the
 /// composer) a board is magnified toward the edge: its content stretches
-/// along the scroll axis, its sides flare out, and it smears along the
-/// stretch, like the reference where cards bend as they leave the screen.
+/// along the scroll axis, its sides flare out, it smears along the stretch
+/// and its colours split like light through a prism, like the reference
+/// where cards bend as they leave the screen.
 ///
 /// `originY` is the view's top in screen points; `centerX` the view's own
-/// horizontal centre. `stretch` and `smear` are fractions of the band the
-/// pixel is in; stretch stays under a half so the mapping never folds back
-/// on itself.
-[[ stitchable ]] half4 edgeLens(float2 position, SwiftUI::Layer layer, float originY, float topBand, float bottomStart, float bottomBand, float stretch, float widen, float smear, float centerX) {
+/// horizontal centre. `stretch`, `smear` and `fringe` are fractions of the
+/// band the pixel is in; stretch stays under a half so the mapping never
+/// folds back on itself.
+[[ stitchable ]] half4 edgeLens(float2 position, SwiftUI::Layer layer, float originY, float topBand, float bottomStart, float bottomBand, float stretch, float widen, float smear, float fringe, float centerX) {
     float screenY = position.y + originY;
     float t = 0.0f;
     float band = 0.0f;
@@ -194,13 +195,19 @@ constant float3 kPlaceholder = float3(0.933f, 0.933f, 0.925f);
         centerX + (position.x - centerX) / (1.0f + widen * ease),
         position.y + direction * stretch * band * ease
     );
-    // Directional smear along the stretch: seven taps, triangular weights.
+    // Directional smear along the stretch (seven taps, triangular weights),
+    // with red and blue sampled a little ahead of and behind green.
     float tap = smear * band * ease / 3.0f;
+    float2 split = float2(0.0f, fringe * band * ease);
     half4 sum = half4(0.0h);
     float total = 0.0f;
     for (int i = -3; i <= 3; i++) {
         float weight = 4.0f - abs(float(i));
-        sum += layer.sample(source + float2(0.0f, float(i) * tap)) * half(weight);
+        float2 at = source + float2(0.0f, float(i) * tap);
+        half4 g = layer.sample(at);
+        half4 r = layer.sample(at - split);
+        half4 b = layer.sample(at + split);
+        sum += half4(r.r, g.g, b.b, g.a) * half(weight);
         total += weight;
     }
     return sum / half(total);

@@ -24,7 +24,7 @@ struct CreateView: View {
         // blur takes over; the bottom one starts just above the panel, since
         // anything higher would warp a board between the suggestion chips.
         let lens = EdgeLensBands(
-            top: headerBottom + 70,
+            top: headerBottom + 16,
             bottomStart: panelTop - 24,
             bottom: max(1, canvasBottom - panelTop + 24)
         )
@@ -161,8 +161,7 @@ private struct CreateHeader: View {
     @AppStorage(SettingsKey.reduceEffects) private var reduceEffects = false
 
     var body: some View {
-        GlassGroup {
-            HStack(spacing: 10) {
+        HStack(spacing: 10) {
                 AppMenuButton()
 
                 Spacer()
@@ -198,7 +197,6 @@ private struct CreateHeader: View {
                 } label: {
                     CircleIcon(systemImage: "ellipsis")
                 }
-        }
         }
         .padding(.horizontal, 16)
         .padding(.top, 4)

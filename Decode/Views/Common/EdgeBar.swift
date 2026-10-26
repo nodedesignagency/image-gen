@@ -25,26 +25,22 @@ extension View {
         }
     }
 
-    /// Dark-tinted glass. On iOS 26+ this is the system's Liquid Glass, which
-    /// refracts whatever sits behind it; earlier versions get a painted stand-in.
+    /// Dark smoked glass: one standard material blur under a charcoal tint, a
+    /// top-left glow and a light rim. Not the system's Liquid Glass: in the
+    /// simulator that re-ran its refraction passes for every glass piece on
+    /// every frame the canvas changed, which held a decode at 20 fps.
     /// `strength` is how dark the tint is. Pair with white content.
     /// `lite` paints a translucent dark fill instead, which costs nothing per frame.
     @ViewBuilder
     func smokedGlass<S: Shape>(in shape: S, strength: Double = 0.55, interactive: Bool = false, lite: Bool = false) -> some View {
-        #if compiler(>=6.2)
         if lite {
             background {
                 shape.fill(Color(white: 0.1).opacity(0.84))
                     .overlay { shape.stroke(.white.opacity(0.14), lineWidth: 1) }
             }
-        } else if #available(iOS 26.0, *) {
-            glassEffect(.regular.tint(Color.black.opacity(strength)).interactive(interactive), in: shape)
         } else {
-            background { FrostedGlass(shape: shape, opacity: strength + 0.15) }
+            background { FrostedGlass(shape: shape, opacity: strength) }
         }
-        #else
-        background { FrostedGlass(shape: shape, opacity: strength + 0.15) }
-        #endif
     }
 
     /// Smoked glass behind a tappable floating control.
@@ -53,38 +49,21 @@ extension View {
     }
 }
 
-/// Groups neighbouring glass views so the system renders them together
-/// (Liquid Glass needs this when several pieces sit close to each other).
-struct GlassGroup<Content: View>: View {
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, *) {
-            GlassEffectContainer { content }
-        } else {
-            content
-        }
-        #else
-        content
-        #endif
-    }
-}
-
-/// Painted stand-in for pre-iOS 26: backdrop blur under translucent charcoal,
-/// a soft corner light and a rim that catches it.
+/// Backdrop blur under translucent charcoal, a soft corner light and a rim
+/// that catches it. The shadow comes from a still shape behind, so it isn't
+/// re-rendered as the blurred backdrop changes.
 struct FrostedGlass<S: Shape>: View {
     let shape: S
-    var opacity = 0.7
-    var blur: CGFloat = 30
+    var opacity = 0.55
 
     var body: some View {
-        BackdropBlur(radius: blur)
-            .clipShape(shape)
+        shape
+            .fill(.ultraThinMaterial)
+            .environment(\.colorScheme, .dark)
             .overlay {
                 shape.fill(
                     LinearGradient(
-                        colors: [Color(white: 0.2).opacity(opacity), Color(white: 0.05).opacity(opacity)],
+                        colors: [Color(white: 0.18).opacity(opacity), Color(white: 0.04).opacity(opacity)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -92,17 +71,17 @@ struct FrostedGlass<S: Shape>: View {
             }
             .overlay {
                 shape.fill(
-                    RadialGradient(colors: [.white.opacity(0.14), .clear], center: .topLeading, startRadius: 0, endRadius: 220)
+                    RadialGradient(colors: [.white.opacity(0.13), .clear], center: .topLeading, startRadius: 0, endRadius: 240)
                 )
             }
             .overlay {
                 shape.stroke(
-                    LinearGradient(colors: [.white.opacity(0.26), .white.opacity(0.05)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    LinearGradient(colors: [.white.opacity(0.28), .white.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing),
                     lineWidth: 1
                 )
             }
             .background {
-                shape.fill(Color.black.opacity(0.28)).blur(radius: 20).offset(y: 10)
+                shape.fill(Color.black.opacity(0.26)).blur(radius: 18).offset(y: 8)
             }
     }
 }
