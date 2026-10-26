@@ -97,10 +97,17 @@ struct Composer: View {
                                 .accessibilityLabel("Style: \(studio.style.rawValue)")
                             }
                             .padding(.leading, 14)
-                            .padding(.trailing, 6)
+                            .padding(.trailing, 18)
                         }
                         .scrollIndicators(.hidden)
-                        .scrollClipDisabled()
+                        // Fade out before the send button instead of running under it.
+                        .mask {
+                            HStack(spacing: 0) {
+                                Rectangle()
+                                LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                                    .frame(width: 22)
+                            }
+                        }
 
                         SendButton(isBusy: studio.isGenerating) {
                             isFocused = false

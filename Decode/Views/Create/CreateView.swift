@@ -6,7 +6,7 @@ struct CreateView: View {
     @Environment(Studio.self) private var studio
     @AppStorage(SettingsKey.haptics) private var haptics = true
     @Namespace private var zoom
-    @AppStorage(SettingsKey.edgeLens) private var edgeLens = true
+    @AppStorage(SettingsKey.edgeLens) private var edgeLens = false
     @State private var composerHeight: CGFloat = 200
     /// Status bar + header: the zone the edge lens and top blur cover.
     @State private var topInset: CGFloat = 110
@@ -37,14 +37,20 @@ struct CreateView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                     .padding(.bottom, 24)
+                    // Content bends toward the top edge as it passes under the
+                    // header. Applied to the content, not the ScrollView: Metal
+                    // effects can't rasterize UIKit-backed views, and a
+                    // ScrollView is one (it renders blank). The band is in
+                    // content coordinates, so it follows the scroll offset.
+                    .visualEffect { [edgeLens, topInset] content, proxy in
+                        content.distortionEffect(
+                            ShaderLibrary.edgeLens(.float(topInset + 12 - proxy.frame(in: .scrollView).minY), .float(34)),
+                            maxSampleOffset: CGSize(width: 0, height: 34),
+                            isEnabled: edgeLens
+                        )
+                    }
                 }
                 .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { topInset = $0 }
-                // Content bends toward the top edge as it passes under the header.
-                .distortionEffect(
-                    ShaderLibrary.edgeLens(.float(topInset + 12), .float(34)),
-                    maxSampleOffset: CGSize(width: 0, height: 34),
-                    isEnabled: edgeLens
-                )
                 .scrollDismissesKeyboard(.interactively)
                 .background {
                     ZStack {
