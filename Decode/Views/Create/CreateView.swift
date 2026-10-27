@@ -1,4 +1,3 @@
-import OSLog
 import SwiftUI
 
 /// The Create tab: a dotted canvas of boards, each new generation cabled to
@@ -9,42 +8,32 @@ struct CreateView: View {
     @Namespace private var zoom
     @AppStorage(SettingsKey.edgeLens) private var edgeLens = true
     @AppStorage(SettingsKey.reduceEffects) private var reduceEffects = false
-    @State private var composerHeight: CGFloat = 200
-    // Edges for the lens, all measured in the same (.global) space as the
-    // boards measure themselves, so it doesn't matter where its origin is.
+    /// The composer's glass panel, without the suggestions above it.
+    @State private var panelHeight: CGFloat = 140
+    /// Measured in .global, the same space the boards measure themselves in.
     @State private var headerBottom: CGFloat = 110
-    @State private var panelTop: CGFloat = 700
-    @State private var canvasBottom: CGFloat = 874
+    @State private var scroll = ScrollPosition(edge: .top)
 
     var body: some View {
         @Bindable var studio = studio
-        // Thick-glass edges: boards are magnified as they slide under the
-        // header and under the composer's glass. The top band reaches well
-        // past the header, as in the reference, so the bend shows before the
-        // blur takes over; the bottom one starts just above the panel, since
-        // anything higher would warp a board between the suggestion chips.
-        let lens = EdgeLensBands(
-            top: headerBottom + 16,
-            bottomStart: panelTop - 24,
-            bottom: max(1, canvasBottom - panelTop + 24)
-        )
+        // The edge lens bends boards as they slide under the header. Only
+        // the top edge: a board resting above the composer would otherwise
+        // run through the shader on every frame of its decode.
+        let lensBand = headerBottom + 16
         let lensOn = edgeLens && !reduceEffects
 
         NavigationStack(path: $studio.createPath) {
-            ScrollViewReader { proxy in
-                ZStack(alignment: .bottom) {
+            ZStack(alignment: .bottom) {
                 ScrollView {
                     VStack(spacing: 0) {
                         ForEach(Array(studio.boards.enumerated()), id: \.element.id) { index, board in
                             if index > 0 {
                                 Cable(isLive: board.phase != .done)
                                     .frame(height: 64)
-                                    .id(Self.cableID(board))
                                     .zIndex(1) // plugs sit on top of the tab, not under it
                             }
                             BoardView(board: board, zoom: zoom)
-                                .edgeLens(lens, isEnabled: lensOn)
-                                .id(Self.boardID(board))
+                                .edgeLens(band: lensBand, isEnabled: lensOn)
                         }
 
                         if studio.boards.count == 1 {
@@ -56,7 +45,7 @@ struct CreateView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
-                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { canvasBottom = $0 }
+                .scrollPosition($scroll)
                 .scrollDismissesKeyboard(.interactively)
                 .background {
                     ZStack {
@@ -71,57 +60,36 @@ struct CreateView: View {
                     CreateHeader()
                         .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { headerBottom = $0 }
                 }
-                // Room for the last board, chips included, to scroll clear of
-                // the composer. A content margin, not safe-area padding: padding
-                // derived from the composer's own height fed back into its
-                // position and lifted it by that height on first appearance.
-                .contentMargins(.bottom, composerHeight + 6, for: .scrollContent)
-                // Camera follow: frame the cable as the new board links in, then
-                // glide down with the sweep so the bottom row decodes on screen.
-                // Both wait a beat so the new views exist before scrolling.
-                .onChange(of: studio.boards.count) { _, _ in
-                    guard let last = studio.boards.last else { return }
+                // Room for the last board to sit clear of the composer *and*
+                // its suggestion row. Fixed while a board generates (the row
+                // hides then): a margin that changed mid-scroll cut the camera
+                // short. A content margin, not safe-area padding, which fed
+                // back into the composer's position.
+                .contentMargins(.bottom, panelHeight + Composer.suggestionsHeight + 16, for: .scrollContent)
+                // Camera: glide to the bottom as soon as a new board links in,
+                // so the cable and the whole 2×2 are on screen for the decode.
+                // A beat first so the new board is laid out; New canvas goes
+                // back to the top.
+                .onChange(of: studio.boards.count) { old, new in
                     Task { @MainActor in
-                        try? await Task.sleep(for: .milliseconds(60))
-                        withAnimation(.smooth(duration: 0.8)) {
-                            if last.kind == .generation {
-                                proxy.scrollTo(Self.cableID(last), anchor: .top)
-                            } else {
-                                proxy.scrollTo(Self.boardID(last), anchor: .top)
-                            }
+                        try? await Task.sleep(for: .milliseconds(50))
+                        withAnimation(.smooth(duration: 0.75)) {
+                            scroll.scrollTo(edge: new > old ? .bottom : .top)
                         }
                     }
                 }
                 .onChange(of: studio.boards.last?.phase) { _, phase in
-                    guard let last = studio.boards.last else { return }
-                    switch phase {
-                    case .decoding:
-                        Task { @MainActor in
-                            try? await Task.sleep(for: .seconds(0.8 * SettingsKey.speed.multiplier))
-                            withAnimation(.smooth(duration: 1.4)) {
-                                proxy.scrollTo(Self.boardID(last), anchor: .bottom)
-                            }
-                        }
-                    case .done:
-                        // The suggestions slide back in under the finished board;
-                        // once they have, lift the board so its chips stay clear.
-                        Task { @MainActor in
-                            try? await Task.sleep(for: .milliseconds(450))
-                            withAnimation(.smooth(duration: 0.6)) {
-                                proxy.scrollTo(Self.boardID(last), anchor: .bottom)
-                            }
-                        }
-                    default:
-                        break
+                    // Re-settle once the chips land, in case the user scrolled.
+                    guard phase == .done else { return }
+                    withAnimation(.smooth(duration: 0.5)) {
+                        scroll.scrollTo(edge: .bottom)
                     }
                 }
 
                 // Floats ~10pt off the bottom edge, inside the home-indicator area.
-                Composer(panelTop: $panelTop)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { composerHeight = $0 }
+                Composer(panelHeight: $panelHeight)
                     .padding(.bottom, 10)
                     .ignoresSafeArea(.container, edges: .bottom)
-                }
             }
             .toolbar(.hidden, for: .navigationBar)
             .toolbar(.hidden, for: .tabBar)
@@ -130,29 +98,12 @@ struct CreateView: View {
                     .navigationTransition(.zoom(sourceID: route.id, in: zoom))
             }
         }
-        .onChange(of: lens, initial: true) { _, bands in
-            Self.log.log("edge lens: top \(bands.top, format: .fixed(precision: 0)) bottomStart \(bands.bottomStart, format: .fixed(precision: 0)) bottom \(bands.bottom, format: .fixed(precision: 0))")
-        }
         .sensoryFeedback(trigger: studio.boards.count) { _, _ in
             haptics ? .impact(weight: .medium) : nil
         }
         .sensoryFeedback(trigger: studio.decodeTicks) { _, _ in
             haptics ? .impact(weight: .light, intensity: 0.6) : nil
         }
-    }
-}
-
-// Scroll targets need ids distinct from the ForEach row identity (board.id):
-// scrolling to the row id lands on its first child, the cable.
-extension CreateView {
-    static let log = Logger(subsystem: "com.nodedesign.decode", category: "canvas")
-
-    static func cableID(_ board: Board) -> String {
-        "cable-\(board.id.uuidString)"
-    }
-
-    static func boardID(_ board: Board) -> String {
-        "board-\(board.id.uuidString)"
     }
 }
 
@@ -170,8 +121,7 @@ private struct CreateHeader: View {
                     studio.showPaywall = true
                 } label: {
                     HStack(spacing: 5) {
-                        Image(systemName: "sparkle")
-                            .font(.system(size: 11, weight: .bold))
+                        CreditCoin(size: 13)
                         Text(verbatim: "\(studio.credits)")
                             .font(.monoValue.weight(.semibold))
                             .contentTransition(.numericText(value: Double(studio.credits)))
@@ -191,7 +141,7 @@ private struct CreateHeader: View {
                         withAnimation(.smooth) { studio.resetCanvas() }
                     }
                     .disabled(studio.isGenerating)
-                    Button("Get more credits", systemImage: "sparkle") {
+                    Button("Get more credits", systemImage: "plus.circle") {
                         studio.showPaywall = true
                     }
                 } label: {

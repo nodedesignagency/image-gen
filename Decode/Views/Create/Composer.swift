@@ -6,8 +6,12 @@ import SwiftUI
 /// the model. It never scrolls. Suggestions float above it.
 /// Output is always 1:1 so the 2×2 fits above the panel in recordings.
 struct Composer: View {
-    /// Window y of the glass panel's top edge, for the canvas's bottom lens.
-    @Binding var panelTop: CGFloat
+    /// Height of the glass panel alone, so the canvas can keep its last board
+    /// clear of it whether or not the suggestions are showing.
+    @Binding var panelHeight: CGFloat
+
+    /// The suggestion row plus its gap to the panel.
+    static let suggestionsHeight: CGFloat = 54
 
     @Environment(Studio.self) private var studio
     @FocusState private var isFocused: Bool
@@ -113,7 +117,7 @@ struct Composer: View {
                                 }
                             }
                         } label: {
-                            ModelPill(text: studio.model.slug)
+                            ModelPill(name: studio.model.rawValue)
                         }
                         .accessibilityLabel("Model: \(studio.model.rawValue)")
 
@@ -128,7 +132,7 @@ struct Composer: View {
                     .padding(.bottom, 12)
                 }
                 .smokedGlass(in: panel, strength: 0.62, lite: reduceEffects)
-                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { panelTop = $0 }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { panelHeight = $0 }
                 .padding(.horizontal, 10)
         }
         }
@@ -166,28 +170,28 @@ private struct SuggestionChip: View {
     }
 }
 
-/// Outlined capsule with the chip icon and the model id in mono.
+/// Outlined capsule with the Decode mark and the model's name, the way a
+/// chat app shows "GPT 5.0" next to its provider's logo.
 private struct ModelPill: View {
-    let text: String
+    let name: String
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "cpu")
-                .font(.system(size: 12, weight: .medium))
-            Text(verbatim: text)
-                .font(.mono(12))
+        HStack(spacing: 7) {
+            LogoMark(cell: 5.5, onDark: true)
+            Text(verbatim: name)
+                .font(.chip)
                 .lineLimit(1)
                 .fixedSize()
-                .contentTransition(.numericText())
+                .contentTransition(.interpolate)
         }
-        .foregroundStyle(.white.opacity(0.9))
-        .padding(.leading, 11)
-        .padding(.trailing, 12)
+        .foregroundStyle(.white.opacity(0.92))
+        .padding(.leading, 12)
+        .padding(.trailing, 14)
         .frame(height: 40)
         .background(.white.opacity(0.04), in: Capsule())
         .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
         .contentShape(Capsule())
-        .animation(.smooth(duration: 0.25), value: text)
+        .animation(.smooth(duration: 0.25), value: name)
     }
 }
 

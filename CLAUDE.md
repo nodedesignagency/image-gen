@@ -48,6 +48,15 @@ and the CPU only supplies a clock. See README.md for the feature tour.
   `Shaders.metal`. Profile has a **Reduce effects** switch that turns glass, blur, lights and
   lens into flat fills.
 - Image JPEGs and ambient palettes are pre-warmed off the main thread in `Studio.generate()`.
+- **Nothing expensive may touch the decoding board or sit behind every blur during a decode.**
+  Two regressions came from exactly this: a bottom-edge lens band that caught the decoding board
+  (whole board through a 21-sample shader every frame), and the ambient lights cross-fading as a
+  decode started (behind all five blurs). The lens is top-edge only, the lights change at `.done`,
+  and header chrome (`glassChrome`) has no backdrop blur of its own (it sits on the header's
+  progressive blur), so only the composer and the header blur sample the backdrop.
+- Camera: `ScrollPosition.scrollTo(edge: .bottom)` as soon as a board is appended, with a bottom
+  content margin that stays fixed while generating (panel height + `Composer.suggestionsHeight`).
+  A margin that changed mid-scroll (suggestions hiding) cut the camera short.
 - Measuring smoothness: a QuickTime recording of the simulator at 60 fps has duplicate frames
   where the app stalled; count unique frames per half second (numpy over `ffmpeg -f rawvideo`).
   The baseline before the shader rewrite was 9–12 unique per half second during a decode.
@@ -67,24 +76,25 @@ and the CPU only supplies a clock. See README.md for the feature tour.
   colours behind the canvas edges.
 - Composer, structured after a reference the user loves (attach · grouped icon segment · model
   pill · send): round moodboard button, one outlined pill grouping the icon actions (enhance,
-  style), one model pill with the cpu icon and the id in mono (`decode-2`, `decode-2-pro` costs
-  2 credits, `decode-lite`), light send button. **The row never scrolls** and the user rejected
+  style), one model pill with the Decode mark and the model's *name* in SF ("Decode 2.1", like
+  "GPT 5.0"; also "Decode 2.1 Pro" at 2 credits, "Decode 2.1 Lite"), light send button. Slugs
+  (`decode-2.1`) only appear in metadata chips. **The row never scrolls** and the user rejected
   two text pills side by side. Floats ~10pt above the bottom edge with screen-concentric corners.
+- Credits use a coin (`CreditCoin`), not a sparkle: the user said the sparkle "looks like AI".
 - Metadata is shown as small chips (`MetaChip`, Framer-property style: grey fill on cards, white
   on the canvas, accent while live) in a wrapping `ChipFlow`, never a horizontal scroll.
 - **Output is always 4 square (1:1) images** so the whole 2×2 decodes on screen in recordings.
 - **Tab bar hidden.** The ☰ glass button (top left) is the navigation (Create / Explore / Library /
   Profile, New canvas, Play demo). No logo in the Create header.
 - Short progressive blur under the top bar only (status bar + header).
-- **Edge lens** (on by default): boards are magnified toward the edge as they leave the screen,
-  under the header and under the composer: content stretches along the scroll axis, the sides
-  flare out, and it smears along the stretch (`View.edgeLens` in `Effect/EdgeLens.swift`, a
-  `layerEffect` in `Shaders.metal`), with the colour channels splitting along the stretch like a
-  prism, which the user asked for after the reference. Per board but computed in screen space;
-  cables are *not* lensed (a thin line through it read as a blob). Reference: a carousel where
-  cards stretch and blur into the screen edges like thick glass. The top band ends 16pt under
-  the header (the user wanted the resting moodboard untouched), the bottom one starts 24pt above
-  the composer's glass; stretch 0.36 of the band, widen 0.18, smear 0.14, fringe 0.05.
+- **Edge lens** (on by default): boards are magnified toward the top edge as they slide under the
+  header: content stretches upward, the sides flare out, it smears along the stretch and the
+  colour channels split like a prism, which the user asked for after the reference
+  (`View.edgeLens` in `Effect/EdgeLens.swift`, a five-sample `layerEffect` in `Shaders.metal`).
+  Per board but computed in screen space; cables are *not* lensed (a thin line through it read
+  as a blob). Reference: a carousel where cards stretch and blur into the screen edges like thick
+  glass. The band ends 16pt under the header (the user wanted the resting moodboard untouched);
+  stretch 0.36 of the band, widen 0.18, smear 0.14, fringe 0.05. **Top edge only** (see gotchas).
 - Typography: SF for prose, SF Mono for machine values (counts, model ids, seeds, prices, timers,
   bits). Use the named scale in `App/Theme.swift` (`.display`, `.screenTitle`, `.heading`,
   `.prose`, `.button`, `.label`, `.chip`, `.supporting`, `.note`, `.micro`; `.monoStat`,
@@ -93,10 +103,10 @@ and the CPU only supplies a clock. See README.md for the feature tour.
 
 ## Open items
 
-- Confirm on the user's Mac that dropping Liquid Glass fixed the steady 20 fps (ask for a 10 s
-  recording; inside the decoding board, diff consecutive frames and look for the change/same/same
-  cadence). If it's still 20 fps the next suspect is the header's private `variableBlur` filter.
-  Remaining known hitch: ~200 ms when generate is tapped (composer resizing, new board + cable).
+- Confirm on the user's Mac that the decode is smooth now (ask for a 10 s recording; diff
+  consecutive frames inside the decoding board and in the header; during a decode the header
+  should be still). If it isn't, next suspects: the header's private `variableBlur` filter, the
+  composer's material blur, and the 60 fps decode timeline (try 30).
 - Lens tuning against the reference (strength, band size, bottom edge) is new and unreviewed.
 - The user wants the whole thing to look premium for a client-facing post: keep polishing
   typography and spacing wherever a screenshot shows something rough.

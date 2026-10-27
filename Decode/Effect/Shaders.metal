@@ -162,53 +162,31 @@ constant float3 kPlaceholder = float3(0.933f, 0.933f, 0.925f);
 
 // MARK: - Edge lens
 
-/// Thick-glass edges for the canvas, in screen space so neighbouring boards
-/// bend together. Inside the top band (and the bottom band under the
-/// composer) a board is magnified toward the edge: its content stretches
-/// along the scroll axis, its sides flare out, it smears along the stretch
-/// and its colours split like light through a prism, like the reference
-/// where cards bend as they leave the screen.
+/// Thick-glass top edge for the canvas, in screen space so neighbouring boards
+/// bend together. Inside the band a board is magnified toward the edge: its
+/// content stretches upward, its sides flare out, it smears along the stretch
+/// and its colours split like light through a prism, like the reference where
+/// cards bend as they leave the screen.
 ///
 /// `originY` is the view's top in screen points; `centerX` the view's own
 /// horizontal centre. `stretch`, `smear` and `fringe` are fractions of the
-/// band the pixel is in; stretch stays under a half so the mapping never
-/// folds back on itself.
-[[ stitchable ]] half4 edgeLens(float2 position, SwiftUI::Layer layer, float originY, float topBand, float bottomStart, float bottomBand, float stretch, float widen, float smear, float fringe, float centerX) {
+/// band; stretch stays under a half so the mapping never folds back on itself.
+/// Five samples per pixel: three for the smear, one each for red and blue.
+[[ stitchable ]] half4 edgeLens(float2 position, SwiftUI::Layer layer, float originY, float band, float stretch, float widen, float smear, float fringe, float centerX) {
     float screenY = position.y + originY;
-    float t = 0.0f;
-    float band = 0.0f;
-    float direction = 0.0f;
-    if (screenY < topBand) {
-        band = topBand;
-        t = 1.0f - max(screenY, 0.0f) / band;
-        direction = 1.0f;     // sample further down: content pulled up toward the edge
-    } else if (screenY > bottomStart) {
-        band = bottomBand;
-        t = min(screenY - bottomStart, band) / band;
-        direction = -1.0f;    // sample further up: content pulled down toward the edge
-    }
-    if (t <= 0.0f) {
+    if (screenY >= band) {
         return layer.sample(position);
     }
+    float t = 1.0f - max(screenY, 0.0f) / band;   // 0 at the band's bottom, 1 at the edge
     float ease = t * t;
     float2 source = float2(
         centerX + (position.x - centerX) / (1.0f + widen * ease),
-        position.y + direction * stretch * band * ease
+        position.y + stretch * band * ease       // sample further down: content pulled up
     );
-    // Directional smear along the stretch (seven taps, triangular weights),
-    // with red and blue sampled a little ahead of and behind green.
-    float tap = smear * band * ease / 3.0f;
+    float2 tap = float2(0.0f, smear * band * ease * 0.5f);
     float2 split = float2(0.0f, fringe * band * ease);
-    half4 sum = half4(0.0h);
-    float total = 0.0f;
-    for (int i = -3; i <= 3; i++) {
-        float weight = 4.0f - abs(float(i));
-        float2 at = source + float2(0.0f, float(i) * tap);
-        half4 g = layer.sample(at);
-        half4 r = layer.sample(at - split);
-        half4 b = layer.sample(at + split);
-        sum += half4(r.r, g.g, b.b, g.a) * half(weight);
-        total += weight;
-    }
-    return sum / half(total);
+    half4 g = (layer.sample(source - tap) + layer.sample(source) * 2.0h + layer.sample(source + tap)) * 0.25h;
+    half r = layer.sample(source - split).r;
+    half b = layer.sample(source + split).b;
+    return half4(r, g.g, b, g.a);
 }

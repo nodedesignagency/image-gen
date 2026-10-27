@@ -43,9 +43,17 @@ extension View {
         }
     }
 
-    /// Smoked glass behind a tappable floating control.
+    /// Smoked glass behind a tappable floating control. These sit on the
+    /// header's progressive blur already, so they skip a backdrop blur of
+    /// their own: the same tint, glow and rim over already-blurred content
+    /// reads the same, and three fewer blurs re-render while scrolling.
+    @ViewBuilder
     func glassChrome<S: Shape>(in shape: S, lite: Bool = false) -> some View {
-        smokedGlass(in: shape, strength: 0.6, interactive: true, lite: lite)
+        if lite {
+            smokedGlass(in: shape, lite: true)
+        } else {
+            background { FrostedGlass(shape: shape, opacity: 0.6, blursBackdrop: false) }
+        }
     }
 }
 
@@ -55,11 +63,10 @@ extension View {
 struct FrostedGlass<S: Shape>: View {
     let shape: S
     var opacity = 0.55
+    var blursBackdrop = true
 
     var body: some View {
-        shape
-            .fill(.ultraThinMaterial)
-            .environment(\.colorScheme, .dark)
+        base
             .overlay {
                 shape.fill(
                     LinearGradient(
@@ -83,5 +90,16 @@ struct FrostedGlass<S: Shape>: View {
             .background {
                 shape.fill(Color.black.opacity(0.26)).blur(radius: 18).offset(y: 8)
             }
+    }
+
+    /// The material blur, or (for chrome that already sits on a blur) the
+    /// material's dark tint alone.
+    @ViewBuilder private var base: some View {
+        if blursBackdrop {
+            shape.fill(.ultraThinMaterial)
+                .environment(\.colorScheme, .dark)
+        } else {
+            shape.fill(Color.black.opacity(0.3))
+        }
     }
 }
