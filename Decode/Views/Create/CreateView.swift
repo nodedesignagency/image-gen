@@ -79,8 +79,9 @@ struct CreateView: View {
                     }
                 }
                 .onChange(of: studio.boards.last?.phase) { _, phase in
-                    // Re-settle once the chips land, in case the user scrolled.
-                    guard phase == .done else { return }
+                    // Re-settle as the cells pop in and again once the chips
+                    // land, in case anything grew or the user scrolled.
+                    guard phase == .framing || phase == .done else { return }
                     withAnimation(.smooth(duration: 0.5)) {
                         scroll.scrollTo(edge: .bottom)
                     }
