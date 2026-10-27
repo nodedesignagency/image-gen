@@ -1,8 +1,8 @@
 name: Simulator
 
 # PROFILING (side branch only): runs the autopilot demo under Instruments'
-# Time Profiler for the current app, the current app with Reduce effects,
-# and the first version (b814a2f), and summarises where CPU time goes.
+# Time Profiler for the current app (twice) and the previous build (3ed840d),
+# and summarises where CPU time goes.
 
 on:
   push:
@@ -25,15 +25,15 @@ jobs:
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
 
-      - name: Build current (scripts/run.sh) and first version
+      - name: Build current (scripts/run.sh) and previous (3ed840d), both Release
         run: |
           /bin/bash ./scripts/run.sh --no-launch
           UDID=$(xcrun simctl list devices booted | awk '/iPhone/ && match($0, /\([0-9A-F-]+\)/) { print substr($0, RSTART + 1, RLENGTH - 2); exit }')
           echo "UDID=$UDID" >> "$GITHUB_ENV"
           xcrun simctl ui "$UDID" appearance light
-          git worktree add "$RUNNER_TEMP/first" b814a2f
-          (cd "$RUNNER_TEMP/first" && xcodebuild -project Decode.xcodeproj -target Decode -configuration Debug -sdk iphonesimulator -arch "$(uname -m)" SYMROOT="$RUNNER_TEMP/first/build" CODE_SIGNING_ALLOWED=NO build > "$RUNNER_TEMP/first-build.log" 2>&1) || { tail -40 "$RUNNER_TEMP/first-build.log"; exit 1; }
-          codesign --force --sign - --timestamp=none "$RUNNER_TEMP/first/build/Debug-iphonesimulator/Decode.app"
+          git worktree add "$RUNNER_TEMP/prev" 3ed840d
+          (cd "$RUNNER_TEMP/prev" && xcodebuild -project Decode.xcodeproj -target Decode -configuration Release -sdk iphonesimulator -arch "$(uname -m)" SYMROOT="$RUNNER_TEMP/prev/build" CODE_SIGNING_ALLOWED=NO build > "$RUNNER_TEMP/prev-build.log" 2>&1) || { tail -40 "$RUNNER_TEMP/prev-build.log"; exit 1; }
+          codesign --force --sign - --timestamp=none "$RUNNER_TEMP/prev/build/Release-iphonesimulator/Decode.app"
           sleep 10
 
       - name: Profile variants
@@ -66,9 +66,10 @@ jobs:
             rm -f "out/$NAME.xml"
             echo "::endgroup::"
           }
-          prof current build/Debug-iphonesimulator/Decode.app
-          prof current-reduce build/Debug-iphonesimulator/Decode.app -reduceEffects YES
-          prof first "$RUNNER_TEMP/first/build/Debug-iphonesimulator/Decode.app"
+          prof warmup build/Release-iphonesimulator/Decode.app
+          prof current build/Release-iphonesimulator/Decode.app
+          prof previous "$RUNNER_TEMP/prev/build/Release-iphonesimulator/Decode.app"
+          prof current2 build/Release-iphonesimulator/Decode.app
 
       - uses: actions/upload-artifact@v4
         if: always()
