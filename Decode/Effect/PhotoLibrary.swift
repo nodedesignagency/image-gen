@@ -51,8 +51,9 @@ final class PhotoLibrary {
                     decoded.append((name, raw.preparingForDisplay() ?? raw))
                 }
             }
+            let ready = decoded
             await MainActor.run {
-                for (name, image) in decoded where PhotoLibrary.shared.full[name] == nil {
+                for (name, image) in ready where PhotoLibrary.shared.full[name] == nil {
                     PhotoLibrary.shared.full[name] = image
                 }
                 PhotoLibrary.shared.warming.subtract(todo)

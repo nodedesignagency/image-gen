@@ -21,7 +21,7 @@ extension View {
             let e: CGFloat = t * t * (3 - 2 * t)
             return content
                 .scaleEffect(x: 1 + 0.07 * e, y: 1 + 0.22 * e, anchor: .bottom)
-                .opacity(1 - 0.45 * e)
+                .opacity(Double(1 - 0.45 * e))
         }
     }
 }
