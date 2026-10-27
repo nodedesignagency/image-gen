@@ -15,8 +15,10 @@ extension View {
             let frame = proxy.frame(in: .global)
             // 0 while the board's top is below the band, 1 once the whole
             // board has slid past it.
-            let t = isEnabled ? min(max((band - frame.minY) / max(frame.height * 0.85, 1), 0), 1) : 0
-            let e = t * t * (3 - 2 * t)
+            let travel: CGFloat = max(frame.height * 0.85, 1)
+            let raw: CGFloat = (band - frame.minY) / travel
+            let t: CGFloat = isEnabled ? min(max(raw, 0), 1) : 0
+            let e: CGFloat = t * t * (3 - 2 * t)
             return content
                 .scaleEffect(x: 1 + 0.07 * e, y: 1 + 0.22 * e, anchor: .bottom)
                 .opacity(1 - 0.45 * e)
