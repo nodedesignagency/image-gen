@@ -1,19 +1,22 @@
 import SwiftUI
 
-/// 2×2 bit grid, echoing a board.
+/// 2×2 bit grid, echoing a board. `onDark` is all white (no blue) for use
+/// beside white text on smoked glass.
 struct LogoMark: View {
     var cell: CGFloat = 9
+    var onDark = false
 
     var body: some View {
         let gap = cell * 0.28
+        let ink = onDark ? Color.white : Theme.ink
         Grid(horizontalSpacing: gap, verticalSpacing: gap) {
             GridRow {
-                square(Theme.ink)
-                square(Theme.accent)
+                square(ink)
+                square(onDark ? ink.opacity(0.55) : Theme.accent)
             }
             GridRow {
-                square(Theme.ink.opacity(0.22))
-                square(Theme.ink)
+                square(ink.opacity(onDark ? 0.3 : 0.22))
+                square(ink)
             }
         }
         .accessibilityHidden(true)
@@ -103,6 +106,22 @@ struct AppMenuButton: View {
             CircleIcon(systemImage: "line.3.horizontal")
         }
         .accessibilityLabel("Menu")
+    }
+}
+
+/// A coin: the credits icon. A rim with a ring inside, so it reads as a token
+/// rather than anything AI.
+struct CreditCoin: View {
+    var size: CGFloat = 14
+
+    var body: some View {
+        ZStack {
+            Circle().strokeBorder(lineWidth: size * 0.12)
+            Circle().strokeBorder(lineWidth: size * 0.08)
+                .padding(size * 0.26)
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
 }
 

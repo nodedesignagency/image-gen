@@ -367,10 +367,12 @@ final class Studio {
 
     // MARK: Library
 
-    /// Images whose colours light the canvas edges: the newest board that has
-    /// started decoding, else the moodboard.
+    /// Images whose colours light the canvas edges: the newest finished board,
+    /// else the moodboard. Not a decoding one: the lights sit behind every
+    /// blur, so their cross-fade re-renders all of them, and doing that on
+    /// top of a decode is what made it stutter.
     var ambientImages: [String] {
-        let board = boards.last { $0.kind == .generation && ($0.phase == .decoding || $0.phase == .done) } ?? boards.first
+        let board = boards.last { $0.kind == .generation && $0.phase == .done } ?? boards.first
         return board?.shots.map(\.imageName) ?? Preset.moodboard
     }
 

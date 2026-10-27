@@ -22,7 +22,8 @@ struct DecodingImage: View {
 
     var body: some View {
         GeometryReader { proxy in
-            TimelineView(.animation(minimumInterval: 1 / 60)) { timeline in
+            // 30 fps is plenty for flickering bits and keeps four cells cheap.
+            TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
                 let elapsed = timeline.date.timeIntervalSince(start)
                 let progress = min(max(elapsed / duration, 0), 1)
 

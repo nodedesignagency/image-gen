@@ -8,22 +8,28 @@ struct BoardView: View {
 
     var body: some View {
         let isHidden = board.phase == .linking
-        let columns = Array(
-            repeating: GridItem(.flexible(), spacing: Theme.cardPadding),
-            count: board.shots.count == 1 ? 1 : 2
-        )
+        // Plain rows, not a LazyVGrid: a lazy grid off screen reports a
+        // guessed height, so the camera's scroll to a new board fell short.
+        let perRow = board.shots.count == 1 ? 1 : 2
+        let rows = stride(from: 0, to: board.shots.count, by: perRow).map { start in
+            Array(board.shots.indices[start..<min(start + perRow, board.shots.count)])
+        }
 
         VStack(alignment: .leading, spacing: 0) {
             BoardTab(board: board)
                 .onGeometryChange(for: CGSize.self) { $0.size } action: { tabSize = $0 }
 
             VStack(alignment: .leading, spacing: 12) {
-                LazyVGrid(columns: columns, spacing: Theme.cardPadding) {
-                    ForEach(Array(board.shots.enumerated()), id: \.element.id) { index, shot in
-                        ShotCell(board: board, shot: shot, zoom: zoom)
-                            .opacity(isHidden ? 0 : 1)
-                            .scaleEffect(isHidden ? 0.9 : 1)
-                            .animation(.spring(duration: 0.45, bounce: 0.25).delay(Double(index) * 0.06), value: isHidden)
+                VStack(spacing: Theme.cardPadding) {
+                    ForEach(rows, id: \.first) { row in
+                        HStack(spacing: Theme.cardPadding) {
+                            ForEach(row, id: \.self) { index in
+                                ShotCell(board: board, shot: board.shots[index], zoom: zoom)
+                                    .opacity(isHidden ? 0 : 1)
+                                    .scaleEffect(isHidden ? 0.9 : 1)
+                                    .animation(.spring(duration: 0.45, bounce: 0.25).delay(Double(index) * 0.06), value: isHidden)
+                            }
+                        }
                     }
                 }
 

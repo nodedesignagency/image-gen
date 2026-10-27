@@ -79,18 +79,18 @@ extension View {
 
 /// Pretend model picker. Cost is credits per image.
 enum GenModel: String, CaseIterable, Identifiable {
-    case standard = "Decode 2"
-    case pro = "Decode 2 Pro"
-    case lite = "Decode Lite"
+    case standard = "Decode 2.1"
+    case pro = "Decode 2.1 Pro"
+    case lite = "Decode 2.1 Lite"
 
     var id: String { rawValue }
 
     /// Lower-case id used wherever metadata is shown in mono.
     var slug: String {
         switch self {
-        case .standard: "decode-2"
-        case .pro: "decode-2-pro"
-        case .lite: "decode-lite"
+        case .standard: "decode-2.1"
+        case .pro: "decode-2.1-pro"
+        case .lite: "decode-2.1-lite"
         }
     }
 

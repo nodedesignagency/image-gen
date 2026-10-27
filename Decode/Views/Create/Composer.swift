@@ -1,13 +1,17 @@
 import SwiftUI
 
 /// Bottom prompt panel in smoked glass: a roomy prompt on top, then one row
-/// of round icon buttons, mono pills (model, style) and a light send button
-/// pinned right. The row is sized so the longest model and style names fit
-/// on an iPhone without scrolling. Suggestions float above it.
+/// of controls and a light send button pinned right: the round moodboard
+/// button, a grouped pill of icon actions (enhance, style), and one pill for
+/// the model. It never scrolls. Suggestions float above it.
 /// Output is always 1:1 so the 2×2 fits above the panel in recordings.
 struct Composer: View {
-    /// Window y of the glass panel's top edge, for the canvas's bottom lens.
-    @Binding var panelTop: CGFloat
+    /// Height of the glass panel alone, so the canvas can keep its last board
+    /// clear of it whether or not the suggestions are showing.
+    @Binding var panelHeight: CGFloat
+
+    /// The suggestion row plus its gap to the panel.
+    static let suggestionsHeight: CGFloat = 54
 
     @Environment(Studio.self) private var studio
     @FocusState private var isFocused: Bool
@@ -23,7 +27,7 @@ struct Composer: View {
         @Bindable var studio = studio
         let hasText = !studio.prompt.trimmingCharacters(in: .whitespaces).isEmpty
 
-        GlassGroup {
+        Group {
             VStack(spacing: 10) {
                 // Suggestions step aside while a board decodes, giving it more room.
                 if !studio.isGenerating {
@@ -68,14 +72,43 @@ struct Composer: View {
                             MoodboardThumbs(isOn: studio.usesMoodboard)
                         }
 
-                        RoundIconButton(isOn: studio.isEnhancing, label: "Enhance prompt") {
-                            studio.enhance()
-                        } content: {
-                            Image(systemName: "wand.and.stars")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.9 : 0.5))
-                                .symbolEffect(.pulse, isActive: studio.isEnhancing)
+                        // Icon actions share one outlined pill, like a toolbar segment.
+                        HStack(spacing: 0) {
+                            Button {
+                                studio.enhance()
+                            } label: {
+                                Image(systemName: "wand.and.stars")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(.white.opacity(hasText || studio.isEnhancing ? 0.9 : 0.5))
+                                    .symbolEffect(.pulse, isActive: studio.isEnhancing)
+                                    .frame(width: 40, height: 40)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(PressableStyle())
+                            .accessibilityLabel("Enhance prompt")
+
+                            Rectangle()
+                                .fill(.white.opacity(0.14))
+                                .frame(width: 1, height: 18)
+
+                            Menu {
+                                Picker("Style", selection: $studio.style) {
+                                    ForEach(ImageStyle.allCases) { style in
+                                        Label(style.rawValue, systemImage: style.symbol).tag(style)
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: studio.style.symbol)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(.white.opacity(0.9))
+                                    .contentTransition(.symbolEffect(.replace))
+                                    .frame(width: 40, height: 40)
+                                    .contentShape(Rectangle())
+                            }
+                            .accessibilityLabel("Style: \(studio.style.rawValue)")
                         }
+                        .background(.white.opacity(0.04), in: Capsule())
+                        .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
 
                         Menu {
                             Picker("Model", selection: $studio.model) {
@@ -84,20 +117,9 @@ struct Composer: View {
                                 }
                             }
                         } label: {
-                            MonoPill(text: studio.model.slug)
+                            ModelPill(name: studio.model.rawValue)
                         }
                         .accessibilityLabel("Model: \(studio.model.rawValue)")
-
-                        Menu {
-                            Picker("Style", selection: $studio.style) {
-                                ForEach(ImageStyle.allCases) { style in
-                                    Label(style.rawValue, systemImage: style.symbol).tag(style)
-                                }
-                            }
-                        } label: {
-                            MonoPill(text: studio.style.rawValue.lowercased())
-                        }
-                        .accessibilityLabel("Style: \(studio.style.rawValue)")
 
                         Spacer(minLength: 4)
 
@@ -110,7 +132,7 @@ struct Composer: View {
                     .padding(.bottom, 12)
                 }
                 .smokedGlass(in: panel, strength: 0.62, lite: reduceEffects)
-                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { panelTop = $0 }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { panelHeight = $0 }
                 .padding(.horizontal, 10)
         }
         }
@@ -148,23 +170,28 @@ private struct SuggestionChip: View {
     }
 }
 
-/// Outlined capsule with a mono value, for pickers.
-private struct MonoPill: View {
-    let text: String
+/// Outlined capsule with the Decode mark and the model's name, the way a
+/// chat app shows "GPT 5.0" next to its provider's logo.
+private struct ModelPill: View {
+    let name: String
 
     var body: some View {
-        Text(verbatim: text)
-            .font(.mono(12))
-            .lineLimit(1)
-            .fixedSize()
-            .foregroundStyle(.white.opacity(0.9))
-            .padding(.horizontal, 11)
-            .frame(height: 40)
-            .background(.white.opacity(0.04), in: Capsule())
-            .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
-            .contentShape(Capsule())
-            .contentTransition(.numericText())
-            .animation(.smooth(duration: 0.25), value: text)
+        HStack(spacing: 7) {
+            LogoMark(cell: 5.5, onDark: true)
+            Text(verbatim: name)
+                .font(.chip)
+                .lineLimit(1)
+                .fixedSize()
+                .contentTransition(.interpolate)
+        }
+        .foregroundStyle(.white.opacity(0.92))
+        .padding(.leading, 12)
+        .padding(.trailing, 14)
+        .frame(height: 40)
+        .background(.white.opacity(0.04), in: Capsule())
+        .overlay { Capsule().stroke(.white.opacity(0.18), lineWidth: 1) }
+        .contentShape(Capsule())
+        .animation(.smooth(duration: 0.25), value: name)
     }
 }
 
