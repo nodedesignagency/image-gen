@@ -1,7 +1,8 @@
 name: Simulator
 
-# Builds the app, runs the hands-free demo (-autopilot YES) in an iPhone
-# simulator and uploads a screen recording plus screenshots as an artifact.
+# PROFILING (side branch only): runs the autopilot demo under Instruments'
+# Time Profiler for the current app, the current app with Reduce effects,
+# and the first version (b814a2f), and summarises where CPU time goes.
 
 on:
   push:
@@ -10,69 +11,73 @@ on:
   workflow_dispatch:
 
 jobs:
-  demo:
+  profile:
     runs-on: macos-15
-    timeout-minutes: 40
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Select newest Xcode
         run: |
-          ls -d /Applications/Xcode*.app
           XCODE=$(ls -d /Applications/Xcode_*.app | grep -E 'Xcode_[0-9.]+\.app$' | sort -V | tail -1)
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
 
-      # Same script you run locally, so CI proves it works on a fresh Mac.
-      - name: Build, boot and install (scripts/run.sh)
+      - name: Build current (scripts/run.sh) and first version
         run: |
-          # macOS's stock /bin/bash (3.2), the shell your Mac uses for this script.
-          /bin/bash --version | head -1
           /bin/bash ./scripts/run.sh --no-launch
           UDID=$(xcrun simctl list devices booted | awk '/iPhone/ && match($0, /\([0-9A-F-]+\)/) { print substr($0, RSTART + 1, RLENGTH - 2); exit }')
           echo "UDID=$UDID" >> "$GITHUB_ENV"
           xcrun simctl ui "$UDID" appearance light
-          xcrun simctl status_bar "$UDID" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
-          # Settle the simulator before recording.
+          git worktree add "$RUNNER_TEMP/first" b814a2f
+          (cd "$RUNNER_TEMP/first" && xcodebuild -project Decode.xcodeproj -target Decode -configuration Debug -sdk iphonesimulator -arch "$(uname -m)" SYMROOT="$RUNNER_TEMP/first/build" CODE_SIGNING_ALLOWED=NO build > "$RUNNER_TEMP/first-build.log" 2>&1) || { tail -40 "$RUNNER_TEMP/first-build.log"; exit 1; }
+          codesign --force --sign - --timestamp=none "$RUNNER_TEMP/first/build/Debug-iphonesimulator/Decode.app"
           sleep 10
 
-      - name: Record autopilot demo
+      - name: Profile variants
         run: |
           mkdir -p out
-          # Warm-up launch so the recorded launch is quick.
-          xcrun simctl launch "$UDID" com.nodedesign.decode
-          sleep 8
-          xcrun simctl terminate "$UDID" com.nodedesign.decode || true
-          sleep 2
-
-          xcrun simctl io "$UDID" recordVideo --codec=h264 --force out/decode-demo.mp4 > recorder.log 2>&1 &
-          REC=$!
-          for _ in $(seq 1 120); do
-            grep -q "Recording started" recorder.log && break
-            sleep 0.5
-          done
-          cat recorder.log
-          sleep 1
-
-          xcrun simctl launch "$UDID" com.nodedesign.decode -autopilot YES -edgeLens YES
-          sleep 58
-          xcrun simctl io "$UDID" screenshot out/final.png > /dev/null 2>&1 || true
-
-          kill -INT "$REC"
-          wait "$REC" || true
-          ls -la out
-
-      - name: Collect logs
-        if: always()
-        run: |
-          mkdir -p out
-          cp build/build.log out/ 2>/dev/null || true
-          xcrun simctl spawn "$UDID" log show --last 5m --style compact --predicate 'process == "Decode"' > out/app-log.txt 2>/dev/null || true
-          find ~/Library/Logs/DiagnosticReports -iname "*Decode*" -exec cp {} out/ \; 2>/dev/null || true
+          prof() {
+            NAME=$1; APP=$2; shift 2
+            echo "::group::$NAME"
+            xcrun simctl terminate "$UDID" com.nodedesign.decode 2>/dev/null || true
+            xcrun simctl install "$UDID" "$APP"
+            xcrun simctl launch "$UDID" com.nodedesign.decode > /dev/null; sleep 6
+            xcrun simctl terminate "$UDID" com.nodedesign.decode || true; sleep 2
+            OUT=$(xcrun simctl launch "$UDID" com.nodedesign.decode -autopilot YES "$@")
+            echo "$OUT"; PID=${OUT##*: }
+            date +%T.%N > "out/$NAME.launch"
+            sleep 9
+            date +%T.%N > "out/$NAME.trace-start"
+            sudo xcrun xctrace record --template 'Time Profiler' --all-processes --time-limit 24s --output "out/$NAME.trace" > "out/$NAME.record.log" 2>&1 || true
+            cat "out/$NAME.record.log"
+            if [ ! -e "out/$NAME.trace" ]; then
+              echo "all-processes failed; attaching to $PID"
+              sudo xcrun xctrace record --template 'Time Profiler' --attach "$PID" --time-limit 20s --output "out/$NAME.trace" || true
+            fi
+            sudo chown -R "$(whoami)" out
+            xcrun xctrace export --input "out/$NAME.trace" --toc > "out/$NAME.toc.xml" || true
+            xcrun xctrace export --input "out/$NAME.trace" --xpath '/trace-toc/run[@number="1"]/data/table[@schema="time-profile"]' > "out/$NAME.xml" || true
+            ls -la "out/$NAME.xml"
+            python3 .github/perf/summarize.py "out/$NAME.xml" > "out/$NAME.txt" 2>&1 || true
+            head -60 "out/$NAME.txt"
+            rm -f "out/$NAME.xml"
+            echo "::endgroup::"
+          }
+          prof current build/Debug-iphonesimulator/Decode.app
+          prof current-reduce build/Debug-iphonesimulator/Decode.app -reduceEffects YES
+          prof first "$RUNNER_TEMP/first/build/Debug-iphonesimulator/Decode.app"
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: simulator-output
-          path: out/
-          retention-days: 14
+          name: profile-summaries
+          path: |
+            out/*.txt
+            out/*.log
+            out/*.toc.xml
+            out/*.launch
+            out/*.trace-start
+          retention-days: 7
