@@ -6,6 +6,15 @@ struct ImagePalette {
     let columns: Int
     let rows: Int
     private let colors: [RGB]
+    /// The same colours as r, g, b floats, row by row, for the decode shader.
+    let floats: [Float]
+
+    init(columns: Int, rows: Int, colors: [RGB]) {
+        self.columns = columns
+        self.rows = rows
+        self.colors = colors
+        floats = colors.flatMap { [Float($0.r), Float($0.g), Float($0.b)] }
+    }
 
     func color(column: Int, row: Int) -> RGB {
         colors[row * columns + column]
@@ -71,6 +80,7 @@ struct ImagePalette {
 final class PaletteCache {
     static let shared = PaletteCache()
     private var store: [String: ImagePalette] = [:]
+    private var pending: Set<String> = []
 
     func palette(for name: String, columns: Int, rows: Int) -> ImagePalette {
         let key = Self.key(name, columns, rows)
@@ -80,16 +90,26 @@ final class PaletteCache {
         return made
     }
 
+    /// The palette if it's ready; otherwise starts building it off the main
+    /// thread and returns nil, so a caller that redraws soon picks it up.
+    func cached(for name: String, columns: Int, rows: Int) -> ImagePalette? {
+        if let hit = store[Self.key(name, columns, rows)] { return hit }
+        warm(name, columns: columns, rows: rows)
+        return nil
+    }
+
     /// Builds the palette off the main thread so the first use doesn't stall.
     func warm(_ name: String, columns: Int, rows: Int) {
         let key = Self.key(name, columns, rows)
-        guard store[key] == nil else { return }
+        guard store[key] == nil, !pending.contains(key) else { return }
+        pending.insert(key)
         Task.detached(priority: .userInitiated) {
             let made = ImagePalette.make(from: UIImage(named: name), columns: columns, rows: rows)
             await MainActor.run {
                 if PaletteCache.shared.store[key] == nil {
                     PaletteCache.shared.store[key] = made
                 }
+                PaletteCache.shared.pending.remove(key)
             }
         }
     }

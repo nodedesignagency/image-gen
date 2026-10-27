@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// A styled, aspect-filled bundled image.
+/// A styled, aspect-filled bundled image, already decoded (`PhotoLibrary`).
 struct StyledImage: View {
     let imageName: String
     var style: ImageStyle = .natural
 
     var body: some View {
-        Image(imageName)
+        photo(imageName)
             .resizable()
             .scaledToFill()
             .imageStyle(style)

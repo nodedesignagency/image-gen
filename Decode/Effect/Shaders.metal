@@ -79,15 +79,16 @@ constant float3 kAccent = float3(0.176f, 0.357f, 1.0f);
 constant float3 kInk = float3(0.067f, 0.067f, 0.075f);
 constant float3 kPlaceholder = float3(0.933f, 0.933f, 0.925f);
 
-/// The whole decode in one pass per pixel. `layer` is the finished (styled)
-/// image; `size` its bounds in points. Each glyph column has its own wavy
-/// front: above it the real pixels fade in, at it the bits glow accent blue,
-/// behind it they take on the picture's own colours, below it they idle as
-/// faint noise with brighter drops falling through.
-[[ stitchable ]] half4 decodeReveal(float2 position, SwiftUI::Layer layer, float2 size, float progress, float time, float seedValue, float density) {
+/// The moving part of the decode, as an overlay for a plain photo underneath.
+/// Returns premultiplied colour: the placeholder covers the photo where it
+/// hasn't decoded yet (fading out behind each column's front), and the bits
+/// sit on top: accent blue at the front, the picture's own colour behind it
+/// (from `palette`, r g b per glyph, row by row), faint noise with brighter
+/// drops below it. `grid` is columns and rows, computed in Swift.
+[[ stitchable ]] half4 decodeOverlay(float2 position, half4 color, float2 size, float2 grid, float progress, float time, float seedValue, float density, device const float *palette, int paletteCount) {
     int seed = int(seedValue);
-    int columns = max(1, int(size.x / (7.6f * density)));
-    int rows = max(1, int(size.y / (10.5f * density)));
+    int columns = max(1, int(grid.x));
+    int rows = max(1, int(grid.y));
     float cellW = size.x / float(columns);
     float rowH = size.y / float(rows);
     int column = clamp(int(position.x / cellW), 0, columns - 1);
@@ -95,17 +96,17 @@ constant float3 kPlaceholder = float3(0.933f, 0.933f, 0.925f);
     float rowStep = 1.0f / float(rows);
     float head = dhead(column, progress, seed);
 
-    // Real pixels: solid above the column's tail, fading out toward its head.
+    // How much placeholder still covers the photo: none above the column's
+    // tail, fading in toward its head, all of it below.
     float solid = (head - kBand) * size.y;
     float fadeEnd = (head - kBand * 0.15f) * size.y;
     float imageAlpha = position.y < solid ? 1.0f : 1.0f - (position.y - solid) / max(fadeEnd - solid, 0.001f);
-    imageAlpha = clamp(imageAlpha, 0.0f, 1.0f);
-    float3 color = mix(kPlaceholder, float3(layer.sample(position).rgb), imageAlpha);
+    float cover = 1.0f - clamp(imageAlpha, 0.0f, 1.0f);
 
     float y = (float(row) + 0.5f) * rowStep;
     float dist = head - y;
     if (dist > kBand) {
-        return half4(half3(color), 1.0h);   // fully decoded
+        return half4(half3(kPlaceholder * cover), half(cover));   // fully decoded: transparent
     }
 
     // Each glyph flips at its own rate, faster inside the band.
@@ -116,23 +117,14 @@ constant float3 kPlaceholder = float3(0.933f, 0.933f, 0.925f);
 
     float3 tint;
     float opacity;
-    float2 centre = float2((float(column) + 0.5f) * cellW, (float(row) + 0.5f) * rowH);
     if (dist >= 0.0f) {
         float k = dist / kBand;
         if (dist < rowStep) {
             tint = kAccent;
             opacity = 1.0f;
         } else {
-            // The picture's colour under this glyph, kept readable on the pale placeholder.
-            float2 q = float2(cellW, rowH) * 0.25f;
-            float3 p = (float3(layer.sample(centre + float2(-q.x, -q.y)).rgb)
-                      + float3(layer.sample(centre + float2(q.x, -q.y)).rgb)
-                      + float3(layer.sample(centre + float2(-q.x, q.y)).rgb)
-                      + float3(layer.sample(centre + float2(q.x, q.y)).rgb)) * 0.25f;
-            float luma = dot(p, float3(0.2126f, 0.7152f, 0.0722f));
-            if (luma > 0.72f) {
-                p *= 0.72f / luma;
-            }
+            int i = (row * columns + column) * 3;
+            float3 p = i + 2 < paletteCount ? float3(palette[i], palette[i + 1], palette[i + 2]) : float3(0.45f, 0.45f, 0.47f);
             tint = mix(p, kAccent, pow(1.0f - k, 3.0f) * 0.55f);
             opacity = pow(1.0f - k, 0.7f) * 0.95f;
         }
@@ -154,39 +146,13 @@ constant float3 kPlaceholder = float3(0.933f, 0.933f, 0.925f);
     }
 
     float fs = 9.0f * density;
+    float2 centre = float2((float(column) + 0.5f) * cellW, (float(row) + 0.5f) * rowH);
     float2 g = position - centre;
-    float coverage = isOne ? glyphOne(g, fs) : glyphZero(g, fs);
-    color = mix(color, tint, coverage * opacity);
-    return half4(half3(color), 1.0h);
+    float glyph = (isOne ? glyphOne(g, fs) : glyphZero(g, fs)) * opacity;
+
+    // Glyph over placeholder, premultiplied.
+    float3 rgb = tint * glyph + kPlaceholder * cover * (1.0f - glyph);
+    float alpha = glyph + cover * (1.0f - glyph);
+    return half4(half3(rgb), half(alpha));
 }
 
-// MARK: - Edge lens
-
-/// Thick-glass top edge for the canvas, in screen space so neighbouring boards
-/// bend together. Inside the band a board is magnified toward the edge: its
-/// content stretches upward, its sides flare out, it smears along the stretch
-/// and its colours split like light through a prism, like the reference where
-/// cards bend as they leave the screen.
-///
-/// `originY` is the view's top in screen points; `centerX` the view's own
-/// horizontal centre. `stretch`, `smear` and `fringe` are fractions of the
-/// band; stretch stays under a half so the mapping never folds back on itself.
-/// Five samples per pixel: three for the smear, one each for red and blue.
-[[ stitchable ]] half4 edgeLens(float2 position, SwiftUI::Layer layer, float originY, float band, float stretch, float widen, float smear, float fringe, float centerX) {
-    float screenY = position.y + originY;
-    if (screenY >= band) {
-        return layer.sample(position);
-    }
-    float t = 1.0f - max(screenY, 0.0f) / band;   // 0 at the band's bottom, 1 at the edge
-    float ease = t * t;
-    float2 source = float2(
-        centerX + (position.x - centerX) / (1.0f + widen * ease),
-        position.y + stretch * band * ease       // sample further down: content pulled up
-    );
-    float2 tap = float2(0.0f, smear * band * ease * 0.5f);
-    float2 split = float2(0.0f, fringe * band * ease);
-    half4 g = (layer.sample(source - tap) + layer.sample(source) * 2.0h + layer.sample(source + tap)) * 0.25h;
-    half r = layer.sample(source - split).r;
-    half b = layer.sample(source + split).b;
-    return half4(r, g.g, b, g.a);
-}

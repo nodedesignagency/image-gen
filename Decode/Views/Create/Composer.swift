@@ -147,7 +147,7 @@ private struct SuggestionChip: View {
 
     var body: some View {
         HStack(spacing: 7) {
-            Image(preset.images[0])
+            photoThumbnail(preset.images[0])
                 .resizable()
                 .scaledToFill()
                 .frame(width: 22, height: 22)
@@ -236,7 +236,7 @@ private struct MoodboardThumbs: View {
     }
 
     private func thumb(_ name: String) -> some View {
-        Image(name)
+        photoThumbnail(name)
             .resizable()
             .scaledToFill()
             .frame(width: 10, height: 10)

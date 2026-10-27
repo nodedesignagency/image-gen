@@ -13,7 +13,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 BUNDLE_ID="com.nodedesign.decode"
-APP="build/Debug-iphonesimulator/Decode.app"
+# Release: optimised Swift, so SwiftUI's per-frame work is as light as on a
+# real build. (Debug was noticeably heavier in the simulator.)
+APP="build/Release-iphonesimulator/Decode.app"
 LAUNCH_ARGS=()
 FRESH=0
 LAUNCH=1
@@ -74,7 +76,7 @@ mkdir -p build
 if ! xcodebuild \
   -project Decode.xcodeproj \
   -target Decode \
-  -configuration Debug \
+  -configuration Release \
   -sdk iphonesimulator \
   -arch "$(uname -m)" \
   SYMROOT="$PWD/build" \

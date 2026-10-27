@@ -222,11 +222,7 @@ final class Studio {
         for name in names {
             PaletteCache.shared.warm(name, columns: 3, rows: 3)
         }
-        Task.detached(priority: .userInitiated) {
-            for name in names {
-                _ = UIImage(named: name)?.preparingForDisplay()
-            }
-        }
+        PhotoLibrary.shared.warm(names)
     }
 
     private func run(_ board: Board) async {
