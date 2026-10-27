@@ -3,9 +3,10 @@
 Front-end-only SwiftUI image-generation app, built for screen-recorded social videos. No model:
 "generating" decodes bundled photo sets. The signature effect is the **binary reveal**: images
 decode top-to-bottom from 0s and 1s (blue front, bits tinted with the image's colours, pixels fade
-in behind). It runs entirely in a Metal shader (`decodeReveal` in `Effect/Shaders.metal`, driven
-by `Effect/DecodingImage.swift`): glyphs are distance fields, colours are sampled from the image,
-and the CPU only supplies a clock. See README.md for the feature tour.
+in behind). The photo is drawn plainly; everything that moves is an overlay on top of it, one
+Metal `colorEffect` on an empty rectangle (`decodeOverlay` in `Effect/Shaders.metal`, driven by
+`Effect/DecodingImage.swift`): glyphs are distance fields, the band's colours come from a small
+palette passed as a float array. See README.md for the feature tour.
 
 ## Rules for every update
 
@@ -27,6 +28,16 @@ and the CPU only supplies a clock. See README.md for the feature tour.
   screen recordings from their Mac (iPhone 18 Pro simulator, iOS 27, Xcode 26+).
 
 ## Hard-won gotchas
+
+- **The lag was image decoding, proven with Time Profiler** (`.github/perf/summarize.py`; run
+  `xcrun xctrace record --template 'Time Profiler' --all-processes` around the autopilot on CI and
+  summarise the export). Over half the main thread went to `RBMakeCachedImageTexture` →
+  `applejpeg_decode` → texture upload: any **photo inside a SwiftUI shader effect** (`layerEffect`,
+  `distortionEffect`, likely also `drawingGroup`) is re-rendered into a new texture every frame,
+  in the simulator on the main thread, re-decoding its JPEG each time. Rules: never put a photo
+  inside a shader effect (put the shader on an empty view over or under it); always draw photos
+  via `photo(_:)` / `photoThumbnail(_:)` (`Effect/PhotoLibrary.swift`, decoded once with
+  `preparingForDisplay`), never `Image("name")`; `scripts/run.sh` builds **Release**.
 
 - **Never put Metal effects (`distortionEffect`, `layerEffect`, `colorEffect`) on a `ScrollView`**
   or anything UIKit-backed: it renders blank. Apply them to content inside, e.g. via `visualEffect`.
@@ -87,14 +98,12 @@ and the CPU only supplies a clock. See README.md for the feature tour.
   Profile, New canvas, Play demo). No logo in the Create header.
 - A short fade into the canvas under the top bar (status bar + header); it used to be a
   progressive blur, removed for performance.
-- **Edge lens** (on by default): boards are magnified toward the top edge as they slide under the
-  header: content stretches upward, the sides flare out, it smears along the stretch and the
-  colour channels split like a prism, which the user asked for after the reference
-  (`View.edgeLens` in `Effect/EdgeLens.swift`, a five-sample `layerEffect` in `Shaders.metal`).
-  Per board but computed in screen space; cables are *not* lensed (a thin line through it read
-  as a blob). Reference: a carousel where cards stretch and blur into the screen edges like thick
-  glass. The band ends 16pt under the header (the user wanted the resting moodboard untouched);
-  stretch 0.36 of the band, widen 0.18, smear 0.14, fringe 0.05. **Top edge only** (see gotchas).
+- **Edge lens** (on by default): as a board slides under the header it stretches up into the edge,
+  widens a little and fades (`View.edgeLens` in `Effect/EdgeLens.swift`): transforms only. The
+  Metal version (smear + prism colour split, which the user liked from the reference) re-rendered
+  the board's photos every frame and is why scrolling crawled; don't bring it back over photos.
+  Reference: a carousel where cards stretch and blur into the screen edges like thick glass.
+  Cables are not lensed. Starts 16pt under the header so the resting moodboard is untouched.
 - Typography: SF for prose, SF Mono for machine values (counts, model ids, seeds, prices, timers,
   bits). Use the named scale in `App/Theme.swift` (`.display`, `.screenTitle`, `.heading`,
   `.prose`, `.button`, `.label`, `.chip`, `.supporting`, `.note`, `.micro`; `.monoStat`,
@@ -103,11 +112,9 @@ and the CPU only supplies a clock. See README.md for the feature tour.
 
 ## Open items
 
-- Confirm on the user's Mac that scrolling and decoding are smooth now (ask for a 10 s recording;
-  `mpdecimate` unique frames per half second: 30 = 60 fps). Baseline before removing the blurs:
-  scroll ~5, decode ~10. If still slow, remaining per-frame work is the edge lens on the board
-  under the header during scrolls and the 30 fps decode shader; try Profile → Reduce effects to
-  split them.
+- Confirm on the user's Mac that scrolling and decoding are smooth after the image-decoding fix
+  (`mpdecimate` unique frames per half second: 30 = 60 fps; before: scroll ~5, decode ~10). If
+  anything is still slow, profile it on CI with Time Profiler rather than guessing.
 - Lens tuning against the reference (strength, band size, bottom edge) is new and unreviewed.
 - The user wants the whole thing to look premium for a client-facing post: keep polishing
   typography and spacing wherever a screenshot shows something rough.
