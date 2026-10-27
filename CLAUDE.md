@@ -35,13 +35,11 @@ and the CPU only supplies a clock. See README.md for the feature tour.
   composer). Use `contentMargins(_, for: .scrollContent)`.
 - `scripts/run.sh` runs on macOS's bash 3.2: brace variables next to non-ASCII (`"${NAME}…"`),
   guard empty arrays under `set -u`.
-- **No Liquid Glass (`glassEffect`).** In the simulator it re-ran its refraction passes for every
-  glass piece on every frame the canvas changed and pinned a decode at a steady 20 fps on the
-  user's Mac (frame diffs showed a strict change/same/same cadence). `smokedGlass` is now one
-  standard `.ultraThinMaterial` blur under a charcoal tint, glow and rim (`FrostedGlass`). If an
-  iOS 26 API is ever needed again it must sit inside `#if compiler(>=6.2)` + `#available`.
-- `VariableBlur` uses Core Animation's private `variableBlur` filter (fine for this demo, not App
-  Store-safe) and must re-apply its filter in `layoutSubviews`.
+- **No backdrop blurs of any kind**: no Liquid Glass (`glassEffect`), no materials
+  (`.ultraThinMaterial`), no private `variableBlur`. In the simulator they re-render on every
+  frame content moves beneath them; with them on the user's Mac a scroll ran at ~10 fps and a
+  decode at ~20. Glass is painted (`SmokedTint`: charcoal tint, top-left glow, rim) and the top bar
+  is a fade into the canvas (`edgeBar`). Over the soft ambient lights the tint reads as glass.
 - Performance matters to the user ("feels heavy"). Avoid anything that re-blurs or re-rasterises
   large areas every frame, and never draw per-frame animation with `Canvas` text (the old decode
   drew ~1400 glyphs a frame and ran at 20 fps on the user's Mac). Put per-frame effects in
@@ -70,13 +68,14 @@ and the CPU only supplies a clock. See README.md for the feature tour.
 ## Design decisions the user has made
 
 - **Dark smoked glass** for floating UI (`smokedGlass`, `glassChrome` in
-  `Views/Common/EdgeBar.swift`): a real backdrop blur under a black tint. Light painted gradients
-  were rejected as "not glass". References: dark prompt boxes with a top-left glow and light rim.
+  `Views/Common/EdgeBar.swift`): a translucent charcoal tint with a top-left glow and light rim,
+  painted (no blur, see gotchas). *Light* painted gradients were rejected as "not glass".
 - Glass needs something behind it: `AmbientWash` paints static soft lights from the latest board's
   colours behind the canvas edges.
 - Composer, structured after a reference the user loves (attach · grouped icon segment · model
   pill · send): round moodboard button, one outlined pill grouping the icon actions (enhance,
-  style), one model pill with the Decode mark and the model's *name* in SF ("Decode 2.1", like
+  style), one model pill with the Decode mark in white (the user disliked the blue square there)
+  and the model's *name* in SF ("Decode 2.1", like
   "GPT 5.0"; also "Decode 2.1 Pro" at 2 credits, "Decode 2.1 Lite"), light send button. Slugs
   (`decode-2.1`) only appear in metadata chips. **The row never scrolls** and the user rejected
   two text pills side by side. Floats ~10pt above the bottom edge with screen-concentric corners.
@@ -86,7 +85,8 @@ and the CPU only supplies a clock. See README.md for the feature tour.
 - **Output is always 4 square (1:1) images** so the whole 2×2 decodes on screen in recordings.
 - **Tab bar hidden.** The ☰ glass button (top left) is the navigation (Create / Explore / Library /
   Profile, New canvas, Play demo). No logo in the Create header.
-- Short progressive blur under the top bar only (status bar + header).
+- A short fade into the canvas under the top bar (status bar + header); it used to be a
+  progressive blur, removed for performance.
 - **Edge lens** (on by default): boards are magnified toward the top edge as they slide under the
   header: content stretches upward, the sides flare out, it smears along the stretch and the
   colour channels split like a prism, which the user asked for after the reference
@@ -103,10 +103,11 @@ and the CPU only supplies a clock. See README.md for the feature tour.
 
 ## Open items
 
-- Confirm on the user's Mac that the decode is smooth now (ask for a 10 s recording; diff
-  consecutive frames inside the decoding board and in the header; during a decode the header
-  should be still). If it isn't, next suspects: the header's private `variableBlur` filter, the
-  composer's material blur, and the 60 fps decode timeline (try 30).
+- Confirm on the user's Mac that scrolling and decoding are smooth now (ask for a 10 s recording;
+  `mpdecimate` unique frames per half second: 30 = 60 fps). Baseline before removing the blurs:
+  scroll ~5, decode ~10. If still slow, remaining per-frame work is the edge lens on the board
+  under the header during scrolls and the 30 fps decode shader; try Profile → Reduce effects to
+  split them.
 - Lens tuning against the reference (strength, band size, bottom edge) is new and unreviewed.
 - The user wants the whole thing to look premium for a client-facing post: keep polishing
   typography and spacing wherever a screenshot shows something rough.
@@ -117,7 +118,7 @@ and the CPU only supplies a clock. See README.md for the feature tour.
 Decode/
   App/       DecodeApp, RootView (splash → onboarding → hidden-tab TabView), Theme
   Model/     Studio (state + fake generation timeline), Preset, Feed, Options, Autopilot
-  Effect/    DecodeMath, DecodingImage, ImagePalette, DecodeOnce, VariableBlur, AmbientWash, Shaders.metal
+  Effect/    DecodeMath, DecodingImage, ImagePalette, DecodeOnce, EdgeLens, AmbientWash, Shaders.metal
   Views/     Create (CreateView, BoardView, Cable, Composer), Explore, Library, Profile, Onboarding, Detail, Common
 scripts/run.sh                  build + boot simulator + install + launch (--demo, --fresh, SIM=)
 .github/workflows/simulator.yml CI build + autopilot recording

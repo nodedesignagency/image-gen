@@ -56,7 +56,7 @@ struct CreateView: View {
                     }
                     .ignoresSafeArea()
                 }
-                .edgeBar(.top, lite: reduceEffects) {
+                .edgeBar(.top) {
                     CreateHeader()
                         .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { headerBottom = $0 }
                 }

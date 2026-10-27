@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// 2×2 bit grid, echoing a board. `onDark` swaps ink for white.
+/// 2×2 bit grid, echoing a board. `onDark` is all white (no blue) for use
+/// beside white text on smoked glass.
 struct LogoMark: View {
     var cell: CGFloat = 9
     var onDark = false
@@ -11,7 +12,7 @@ struct LogoMark: View {
         Grid(horizontalSpacing: gap, verticalSpacing: gap) {
             GridRow {
                 square(ink)
-                square(Theme.accent)
+                square(onDark ? ink.opacity(0.55) : Theme.accent)
             }
             GridRow {
                 square(ink.opacity(onDark ? 0.3 : 0.22))

@@ -1,72 +1,65 @@
 import SwiftUI
 
+// Nothing in here samples what's behind it. Backdrop blurs (Liquid Glass,
+// materials, the private variable blur) re-render on every frame that content
+// moves beneath them, and in the simulator that alone held scrolling at
+// ~10 fps and decoding at ~20. The looks below are painted instead.
+
 extension View {
-    /// Pins `bar` to the top or bottom edge over a progressive blur that runs
-    /// from the screen edge through the bar and eases out just past it.
-    /// With `lite`, a plain canvas fade stands in for the blur (no backdrop sampling).
-    func edgeBar<Bar: View>(_ edge: VerticalEdge, fade: CGFloat = 10, lite: Bool = false, @ViewBuilder bar: () -> Bar) -> some View {
+    /// Pins `bar` to the top or bottom edge over a fade into the canvas that
+    /// runs from the screen edge through the bar and eases out just past it,
+    /// so content slides softly underneath.
+    func edgeBar<Bar: View>(_ edge: VerticalEdge, fade: CGFloat = 26, @ViewBuilder bar: () -> Bar) -> some View {
         safeAreaInset(edge: edge, spacing: 0) {
             bar()
                 .background {
-                    if lite {
-                        LinearGradient(
-                            colors: [Theme.canvas, Theme.canvas, Theme.canvas.opacity(0)],
-                            startPoint: edge == .top ? .top : .bottom,
-                            endPoint: edge == .top ? .bottom : .top
-                        )
-                        .padding(edge == .top ? .bottom : .top, -fade * 3)
-                        .ignoresSafeArea()
-                    } else {
-                        VariableBlur(edge: edge, radius: 18)
-                            .padding(edge == .top ? .bottom : .top, -fade)
-                            .ignoresSafeArea()
-                    }
+                    LinearGradient(
+                        stops: [
+                            .init(color: Theme.canvas, location: 0),
+                            .init(color: Theme.canvas.opacity(0.94), location: 0.4),
+                            .init(color: Theme.canvas.opacity(0.7), location: 0.72),
+                            .init(color: Theme.canvas.opacity(0), location: 1),
+                        ],
+                        startPoint: edge == .top ? .top : .bottom,
+                        endPoint: edge == .top ? .bottom : .top
+                    )
+                    .padding(edge == .top ? .bottom : .top, -fade)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
                 }
         }
     }
 
-    /// Dark smoked glass: one standard material blur under a charcoal tint, a
-    /// top-left glow and a light rim. Not the system's Liquid Glass: in the
-    /// simulator that re-ran its refraction passes for every glass piece on
-    /// every frame the canvas changed, which held a decode at 20 fps.
+    /// Dark smoked glass: a charcoal tint with a top-left glow and a light rim.
     /// `strength` is how dark the tint is. Pair with white content.
-    /// `lite` paints a translucent dark fill instead, which costs nothing per frame.
+    /// `lite` is a flat fill (Profile → Reduce effects).
     @ViewBuilder
-    func smokedGlass<S: Shape>(in shape: S, strength: Double = 0.55, interactive: Bool = false, lite: Bool = false) -> some View {
+    func smokedGlass<S: Shape>(in shape: S, strength: Double = 0.62, lite: Bool = false) -> some View {
         if lite {
             background {
-                shape.fill(Color(white: 0.1).opacity(0.84))
+                shape.fill(Color(white: 0.1).opacity(0.88))
                     .overlay { shape.stroke(.white.opacity(0.14), lineWidth: 1) }
             }
         } else {
-            background { FrostedGlass(shape: shape, opacity: strength) }
+            background { SmokedTint(shape: shape, opacity: strength) }
         }
     }
 
-    /// Smoked glass behind a tappable floating control. These sit on the
-    /// header's progressive blur already, so they skip a backdrop blur of
-    /// their own: the same tint, glow and rim over already-blurred content
-    /// reads the same, and three fewer blurs re-render while scrolling.
-    @ViewBuilder
+    /// Smoked glass behind a tappable floating control.
     func glassChrome<S: Shape>(in shape: S, lite: Bool = false) -> some View {
-        if lite {
-            smokedGlass(in: shape, lite: true)
-        } else {
-            background { FrostedGlass(shape: shape, opacity: 0.6, blursBackdrop: false) }
-        }
+        smokedGlass(in: shape, strength: 0.6, lite: lite)
     }
 }
 
-/// Backdrop blur under translucent charcoal, a soft corner light and a rim
-/// that catches it. The shadow comes from a still shape behind, so it isn't
-/// re-rendered as the blurred backdrop changes.
-struct FrostedGlass<S: Shape>: View {
+/// Translucent charcoal, a soft corner light and a rim that catches it, over a
+/// shadow drawn from the still shape.
+struct SmokedTint<S: Shape>: View {
     let shape: S
-    var opacity = 0.55
-    var blursBackdrop = true
+    var opacity = 0.62
 
     var body: some View {
-        base
+        shape
+            .fill(Color.black.opacity(0.34))
             .overlay {
                 shape.fill(
                     LinearGradient(
@@ -88,18 +81,7 @@ struct FrostedGlass<S: Shape>: View {
                 )
             }
             .background {
-                shape.fill(Color.black.opacity(0.26)).blur(radius: 18).offset(y: 8)
+                shape.fill(Color.black.opacity(0.22)).offset(y: 6).blur(radius: 14)
             }
-    }
-
-    /// The material blur, or (for chrome that already sits on a blur) the
-    /// material's dark tint alone.
-    @ViewBuilder private var base: some View {
-        if blursBackdrop {
-            shape.fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
-        } else {
-            shape.fill(Color.black.opacity(0.3))
-        }
     }
 }

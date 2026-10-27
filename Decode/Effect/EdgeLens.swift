@@ -17,10 +17,13 @@ extension View {
         let reach = band * (stretch + smear + fringe)
         return visualEffect { content, proxy in
             let top = proxy.frame(in: .global).minY
+            let active = isEnabled && top < band
             let centerX = proxy.size.width / 2
+            // Out of the band the arguments stay constant, so scrolling never
+            // invalidates a board the lens isn't touching.
             return content.layerEffect(
                 ShaderLibrary.edgeLens(
-                    .float(top),
+                    .float(active ? top : band),
                     .float(band),
                     .float(stretch),
                     .float(widen),
@@ -29,7 +32,7 @@ extension View {
                     .float(centerX)
                 ),
                 maxSampleOffset: CGSize(width: (centerX * widen).rounded(.up), height: reach.rounded(.up)),
-                isEnabled: isEnabled && top < band
+                isEnabled: active
             )
         }
     }

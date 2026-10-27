@@ -157,7 +157,7 @@ struct ProfileView: View {
                 Toggle(isOn: $reduceEffects) {
                     SettingRow(systemImage: "bolt", title: "Reduce effects")
                 }
-                Text("Flat glass, no blur, no lights. Use it if the simulator stutters while recording.")
+                Text("Flat panels, no lights, no lens. Use it if the simulator stutters while recording.")
                     .font(.note)
                     .foregroundStyle(Theme.secondary)
                     .padding(.leading, 36)
